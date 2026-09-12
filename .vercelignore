@@ -1,0 +1,13 @@
+.git
+.github
+.vscode
+api
+artifacts
+configs
+ml
+python_packages
+scripts
+.venv
+*.ps1
+requirements.txt
+README.md

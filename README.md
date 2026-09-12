@@ -1,5 +1,7 @@
 # StockGuard AI
 
+Live dashboard: https://stockguard-ai-ten.vercel.app
+
 This folder contains the first command-based forecasting pipeline for the StockGuard AI project.
 The pilot uses store `S0085` and a set of products with dense daily sales history.
 
