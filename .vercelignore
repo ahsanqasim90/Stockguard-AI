@@ -5,6 +5,7 @@ api
 artifacts
 configs
 ml
+server
 python_packages
 scripts
 .venv

@@ -39,7 +39,7 @@ const faqItems = [
 ];
 
 function Brand() {
-  return <a className="landing-brand" href="#top" aria-label="StockGuard AI home"><span><Activity size={19} /></span><b>StockGuard <em>AI</em></b></a>;
+  return <a className="landing-brand" href="#top" aria-label="StockGuard AI home"><span><img src="/stockguard-logo.png" alt="" /></span><b>StockGuard <em>AI</em></b></a>;
 }
 
 function MiniDashboard({ expanded = false }) {

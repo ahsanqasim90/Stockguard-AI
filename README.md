@@ -2,8 +2,29 @@
 
 Live dashboard: https://stockguard-ai-ten.vercel.app
 
-This folder contains the first command-based forecasting pipeline for the StockGuard AI project.
-The pilot uses store `S0085` and a set of products with dense daily sales history.
+StockGuard AI combines a React website, a Node.js/Express business API, MongoDB,
+and the Python/XGBoost forecasting service. The pilot model uses store `S0085`
+and products with dense daily sales history.
+
+## MERN backend and MongoDB
+
+The `server` folder contains the Node.js/Express API and Mongoose schemas for
+businesses, users, stores, products, sales, inventory, forecasts, and
+recommendations. Install and verify it with:
+
+```powershell
+.\setup_server.ps1
+Copy-Item .\server\.env.example .\server\.env
+```
+
+Add the MongoDB Atlas connection string to `server\.env`, then start it with:
+
+```powershell
+.\run_server.ps1
+```
+
+The health endpoint is `http://127.0.0.1:5000/api/health`. The detailed server
+guide is in `server/README.md`.
 
 ## Using the project in VS Code
 

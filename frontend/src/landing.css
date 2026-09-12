@@ -20,7 +20,8 @@
 .landing button { font: inherit; }
 .landing-nav { position: sticky; z-index: 50; top: 0; height: 76px; padding: 0 max(28px, calc((100vw - 1180px) / 2)); display: flex; align-items: center; border-bottom: 1px solid rgba(87,105,139,.22); background: rgba(7,16,31,.88); backdrop-filter: blur(18px); }
 .landing-brand { display: inline-flex; align-items: center; gap: 10px; flex: 0 0 auto; }
-.landing-brand > span { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; color: white; background: linear-gradient(135deg, #3982ff, #1558e4); box-shadow: 0 8px 24px rgba(47,115,255,.35); }
+.landing-brand > span { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; overflow: hidden; background: #fff; box-shadow: 0 8px 24px rgba(47,115,255,.25); }
+.landing-brand img { width: 84px; height: 84px; max-width: none; object-fit: cover; transform: translateY(9px); }
 .landing-brand b { font: 800 17px Manrope, sans-serif; }
 .landing-brand em { color: var(--landing-green); font-style: normal; }
 .landing-nav nav { margin: 0 auto; display: flex; align-items: center; gap: 36px; }

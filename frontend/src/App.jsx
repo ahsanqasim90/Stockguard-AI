@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Activity, Boxes, BrainCircuit, CalendarDays, ChevronRight, CircleAlert,
-  CircleCheck, Gauge, PackageCheck, Search, ShieldAlert, ShieldCheck,
+  CircleCheck, Gauge, PackageCheck, Search, ShieldAlert,
   Sparkles, Store, TrendingUp, Warehouse,
 } from "lucide-react";
 import {
@@ -153,7 +153,7 @@ export function DashboardApp() {
 
   const [eyebrow, title, subtitle] = PAGE_COPY[activePage];
   const navItems = [["overview", Activity, "Overview"], ["forecasts", Boxes, "Forecasts"], ["inventory", Warehouse, "Inventory"], ["stores", Store, "Stores"], ["model", BrainCircuit, "Model"]];
-  return <div className="app-shell"><aside className="sidebar"><div className="brand"><div className="brand-mark"><ShieldCheck size={25} /></div><div><strong>StockGuard</strong><span>AI demand intelligence</span></div></div><nav>{navItems.map(([id, Icon, label]) => <button key={id} className={activePage === id ? "active" : ""} onClick={() => setActivePage(id)}><Icon size={18} />{label}</button>)}</nav><div className="model-card"><div className="status-row"><span className="status-dot" /><span>Model online</span></div><strong>v{health?.model_version || "1.0.0"}</strong><small>{model?.model_type?.replaceAll("_", " ") || "global xgboost"}</small></div></aside><main><header><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p className="subtitle">{subtitle}</p></div><div className="live-badge"><span /> Model ready</div></header>{error && <div className="error-banner"><CircleAlert size={18} />{error}</div>}{pageContent}</main></div>;
+  return <div className="app-shell"><aside className="sidebar"><div className="brand"><div className="brand-mark"><img src="/stockguard-logo.png" alt="" /></div><div><strong>StockGuard</strong><span>AI demand intelligence</span></div></div><nav>{navItems.map(([id, Icon, label]) => <button key={id} className={activePage === id ? "active" : ""} onClick={() => setActivePage(id)}><Icon size={18} />{label}</button>)}</nav><div className="model-card"><div className="status-row"><span className="status-dot" /><span>Model online</span></div><strong>v{health?.model_version || "1.0.0"}</strong><small>{model?.model_type?.replaceAll("_", " ") || "global xgboost"}</small></div></aside><main><header><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p className="subtitle">{subtitle}</p></div><div className="live-badge"><span /> Model ready</div></header>{error && <div className="error-banner"><CircleAlert size={18} />{error}</div>}{pageContent}</main></div>;
 }
 
 export default function App() {
