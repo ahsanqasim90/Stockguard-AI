@@ -1,0 +1,38 @@
+{
+  "dataset_zip": "archive.zip",
+  "sales_member": "sales.csv/sales.csv",
+  "processed_csv": "data/processed/pilot_sales.csv",
+  "metadata_json": "data/processed/pilot_metadata.json",
+  "store_id": "S0085",
+  "product_ids": [
+    "P0131",
+    "P0364",
+    "P0125",
+    "P0103",
+    "P0333",
+    "P0261",
+    "P0569",
+    "P0663",
+    "P0051",
+    "P0198",
+    "P0664",
+    "P0500",
+    "P0682"
+  ],
+  "forecast_horizon_days": 28,
+  "minimum_history_days": 180,
+  "maximum_training_days": 730,
+  "random_seed": 42,
+  "arima_order": [
+    2,
+    1,
+    2
+  ],
+  "random_forest": {
+    "n_estimators": 250,
+    "max_depth": 18,
+    "min_samples_leaf": 2,
+    "n_jobs": 3
+  },
+  "backtest_folds": 3
+}

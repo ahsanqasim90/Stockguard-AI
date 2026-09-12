@@ -1,0 +1,72 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "StockGuard: 1 Setup Python",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\setup.ps1"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "StockGuard: 2 Prepare pilot data",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\run_prepare.ps1"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "StockGuard: 3 Smoke training",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\run_train.ps1",
+        "-Quick"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "StockGuard: 4 Pilot training",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\run_train.ps1"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "StockGuard: Resume pilot training",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\run_train.ps1",
+        "-Resume"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}
