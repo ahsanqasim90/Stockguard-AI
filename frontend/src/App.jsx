@@ -7,6 +7,7 @@ import {
 import {
   Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
+import LandingPage from "./LandingPage";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 const staticStoreCache = new Map();
@@ -90,7 +91,7 @@ const PAGE_COPY = {
   model: ["Model governance", "Model performance", "Review training, validation and production model details."],
 };
 
-export default function App() {
+export function DashboardApp() {
   const [activePage, setActivePage] = useState("overview");
   const [health, setHealth] = useState(null);
   const [model, setModel] = useState(null);
@@ -153,4 +154,8 @@ export default function App() {
   const [eyebrow, title, subtitle] = PAGE_COPY[activePage];
   const navItems = [["overview", Activity, "Overview"], ["forecasts", Boxes, "Forecasts"], ["inventory", Warehouse, "Inventory"], ["stores", Store, "Stores"], ["model", BrainCircuit, "Model"]];
   return <div className="app-shell"><aside className="sidebar"><div className="brand"><div className="brand-mark"><ShieldCheck size={25} /></div><div><strong>StockGuard</strong><span>AI demand intelligence</span></div></div><nav>{navItems.map(([id, Icon, label]) => <button key={id} className={activePage === id ? "active" : ""} onClick={() => setActivePage(id)}><Icon size={18} />{label}</button>)}</nav><div className="model-card"><div className="status-row"><span className="status-dot" /><span>Model online</span></div><strong>v{health?.model_version || "1.0.0"}</strong><small>{model?.model_type?.replaceAll("_", " ") || "global xgboost"}</small></div></aside><main><header><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p className="subtitle">{subtitle}</p></div><div className="live-badge"><span /> Model ready</div></header>{error && <div className="error-banner"><CircleAlert size={18} />{error}</div>}{pageContent}</main></div>;
+}
+
+export default function App() {
+  return window.location.pathname.startsWith("/dashboard") ? <DashboardApp /> : <LandingPage />;
 }
