@@ -21,6 +21,22 @@ string supplied by Atlas. Then run:
 Open <http://127.0.0.1:5000/api/health>. A successful Atlas connection reports
 `mongodb.state` as `connected`.
 
+## Authentication API
+
+The frontend now uses MongoDB-backed authentication. Passwords are hashed with
+bcrypt, access tokens expire quickly, and refresh tokens are stored in an
+HTTP-only cookie.
+
+- `POST /api/auth/register` creates the first business owner and workspace.
+- `POST /api/auth/login` verifies email and password.
+- `POST /api/auth/refresh` renews an authenticated session.
+- `GET /api/auth/me` returns the current user and requires a bearer token.
+- `POST /api/auth/logout` invalidates the refresh session.
+
+After the database is connected, open <http://127.0.0.1:5173/login>, choose
+**Create account**, and register the first owner. Google/Microsoft sign-in is
+intentionally deferred until the core application flow is complete.
+
 ## Initial collections
 
 - businesses and users

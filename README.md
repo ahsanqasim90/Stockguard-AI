@@ -10,12 +10,11 @@ downloadable reports, business insights, user administration, profile editing,
 and notification, security, model, and appearance settings.
 
 - Sign in: `https://stockguard-ai-ten.vercel.app/login`
-- Demo email: `demo@stockguard.ai`
-- Demo password: `StockGuard2026!`
-
-Interactive demo changes are stored in the browser so the interface can be
-reviewed before the MongoDB-backed authentication and persistence endpoints are
-connected.
+Registration and login are connected to the Express authentication API. Create
+the first owner account after setting `MONGODB_URI` in `server/.env`. Passwords
+are bcrypt-hashed, the dashboard verifies a JWT session, and admin navigation is
+limited to owner/admin roles. Product and report persistence will be migrated
+from browser storage in the next backend phase.
 
 StockGuard AI combines a React website, a Node.js/Express business API, MongoDB,
 and the Python/XGBoost forecasting service. The pilot model uses store `S0085`
