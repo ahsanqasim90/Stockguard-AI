@@ -16,3 +16,4 @@ server/uploads/
 archive.zip
 *.log
 .vercel/
+tmp/

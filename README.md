@@ -2,6 +2,21 @@
 
 Live dashboard: https://stockguard-ai-ten.vercel.app
 
+## Web administration panel
+
+The responsive React administration panel includes dashboard analytics, product
+management, CSV validation and upload history, the production AI forecast view,
+downloadable reports, business insights, user administration, profile editing,
+and notification, security, model, and appearance settings.
+
+- Sign in: `https://stockguard-ai-ten.vercel.app/login`
+- Demo email: `demo@stockguard.ai`
+- Demo password: `StockGuard2026!`
+
+Interactive demo changes are stored in the browser so the interface can be
+reviewed before the MongoDB-backed authentication and persistence endpoints are
+connected.
+
 StockGuard AI combines a React website, a Node.js/Express business API, MongoDB,
 and the Python/XGBoost forecasting service. The pilot model uses store `S0085`
 and products with dense daily sales history.
