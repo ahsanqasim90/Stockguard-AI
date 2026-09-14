@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "check": "node scripts/check.js"
+    "check": "node scripts/check.js",
+    "check:auth-db": "node scripts/check-auth-db.js"
   },
   "engines": {
     "node": ">=20"
