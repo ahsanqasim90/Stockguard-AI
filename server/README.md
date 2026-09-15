@@ -12,7 +12,10 @@ Copy-Item .\server\.env.example .\server\.env
 ```
 
 Edit `server/.env` and set `MONGODB_URI`. For MongoDB Atlas, use the SRV connection
-string supplied by Atlas. Then run:
+string currently shown under **Connect → Drivers** for the active cluster. Use a
+dedicated database user with `readWrite` on `stockguard_ai`; avoid changing a
+shared database user's credentials when other apps use the same Atlas project.
+Keep the URI in environment variables rather than Git. Then run:
 
 ```powershell
 .\run_server.ps1
