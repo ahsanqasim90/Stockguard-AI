@@ -11,7 +11,7 @@
     "check:auth-db": "node scripts/check-auth-db.js"
   },
   "engines": {
-    "node": "20.x"
+    "node": "24.x"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
