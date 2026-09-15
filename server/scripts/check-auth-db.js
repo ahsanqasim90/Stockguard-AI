@@ -1,4 +1,9 @@
-process.env.NODE_ENV = "test";
+const remoteBaseUrl = process.env.STOCKGUARD_AUTH_BASE_URL?.replace(/\/+$/, "") || "";
+process.env.NODE_ENV = remoteBaseUrl ? "production" : "test";
+if (remoteBaseUrl) {
+  process.env.JWT_ACCESS_SECRET ||= "unused-by-remote-auth-integration-check";
+  process.env.JWT_REFRESH_SECRET ||= "unused-by-remote-auth-integration-check";
+}
 
 const [{ default: app }, database, models] = await Promise.all([
   import("../src/app.js"),
@@ -23,8 +28,10 @@ async function json(response) {
 
 try {
   await database.connectDatabase();
-  server = app.listen(0);
-  const baseUrl = `http://127.0.0.1:${server.address().port}/api/auth`;
+  if (!remoteBaseUrl) server = app.listen(0);
+  const baseUrl = remoteBaseUrl
+    ? `${remoteBaseUrl}/api/auth`
+    : `http://127.0.0.1:${server.address().port}/api/auth`;
 
   const registration = await fetch(`${baseUrl}/register`, {
     method: "POST",
@@ -56,9 +63,11 @@ try {
   });
   if (login.status !== 200) throw new Error(`Expected login 200, received ${login.status}.`);
 
-  console.log("MongoDB authentication integration check PASSED");
+  console.log(`${remoteBaseUrl ? "Live" : "Local"} MongoDB authentication integration check PASSED`);
   console.log("Registration, protected route, refresh, logout invalidation, and login verified.");
 } finally {
+  const createdUser = await models.User.findOne({ email }).select("business").lean().catch(() => null);
+  businessId ||= createdUser?.business;
   await models.User.deleteOne({ email }).catch(() => {});
   if (businessId) await models.Business.deleteOne({ _id: businessId }).catch(() => {});
   if (server) await new Promise((resolve) => server.close(resolve));
