@@ -499,3 +499,4 @@ html[data-theme="light"] {
   .sg-topbar .sg-icon-button:not(.sg-mobile-menu) { display: none; }
   .login-story { min-height: 280px; }
 }
+.sg-data-error,.sg-data-success,.sg-data-note{padding:12px 16px;border-radius:10px;margin:12px 0;font-size:14px}.sg-data-error{color:#ff8585;background:rgba(255,69,69,.12)}.sg-data-success{color:#56dbb6;background:rgba(19,201,149,.12)}.sg-data-note{color:#8da5c4}

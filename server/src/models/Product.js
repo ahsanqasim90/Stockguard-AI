@@ -7,6 +7,7 @@ const productSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true, maxlength: 160 },
   sku: { type: String, trim: true, uppercase: true },
   category: { type: String, trim: true, maxlength: 100 },
+  supplier: { type: String, trim: true, maxlength: 120 },
   price: { type: Number, min: 0, default: 0 },
   cost: { type: Number, min: 0, default: 0 },
   supplierLeadTimeDays: { type: Number, min: 1, max: 365, default: 7 },

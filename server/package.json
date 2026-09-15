@@ -8,7 +8,8 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "check": "node scripts/check.js",
-    "check:auth-db": "node scripts/check-auth-db.js"
+    "check:auth-db": "node scripts/check-auth-db.js",
+    "check:products-db": "node scripts/check-products-db.js"
   },
   "engines": {
     "node": "24.x"

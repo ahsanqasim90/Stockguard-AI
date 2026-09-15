@@ -46,6 +46,27 @@ intentionally deferred until the core application flow is complete.
 - stores and products
 - sales and inventory
 - forecasts and recommendations
+- import batches
 
 Every operational collection includes a `business` tenant key so data is isolated
 for each customer.
+
+## Products and sales CSV
+
+Authenticated business users can list products with `GET /api/products`; owners,
+admins and analysts can add with `POST`, edit with `PATCH /api/products/:id`, or
+soft-delete with `DELETE /api/products/:id`. Stock and reorder points are kept in
+the Main store inventory record. Each request is restricted to the current
+business, and SKU must be unique within that business.
+
+`POST /api/imports/sales` accepts a multipart `.csv` file in the `file` field.
+Required columns are `date,product_name,sku,quantity_sold,revenue,category`;
+`store_id` is optional and defaults to `DEFAULT`. Dates use `YYYY-MM-DD`,
+quantities and revenue must be nonnegative, and each date/SKU/store key must be
+unique within the file. The import validates the whole CSV before writing, then
+upserts products and daily sales so re-importing the same rows does not duplicate
+sales. Upload history is available from `GET /api/imports`. The current endpoint
+accepts up to 2 MB and 10,000 sales rows per file. For larger histories, split
+them into smaller CSV batches. The imported business SKUs do not automatically
+map to the historical Kaggle model's product IDs; forecasting them requires the
+next pipeline integration step.
