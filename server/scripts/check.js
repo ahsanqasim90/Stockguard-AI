@@ -5,7 +5,7 @@ await import("../src/models/index.js");
 const { default: app } = await import("../src/app.js");
 
 const expectedModels = [
-  "Business", "User", "Store", "Product", "Sale", "Inventory", "ImportBatch", "Forecast", "ForecastRun", "Recommendation",
+  "Business", "User", "Store", "Product", "Sale", "Inventory", "ImportBatch", "Forecast", "ForecastRun", "Recommendation", "Report",
 ];
 const missingModels = expectedModels.filter((name) => !mongoose.models[name]);
 

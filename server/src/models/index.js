@@ -5,6 +5,7 @@ export { Inventory } from "./Inventory.js";
 export { ImportBatch } from "./ImportBatch.js";
 export { Product } from "./Product.js";
 export { Recommendation } from "./Recommendation.js";
+export { Report } from "./Report.js";
 export { Sale } from "./Sale.js";
 export { Store } from "./Store.js";
 export { User } from "./User.js";

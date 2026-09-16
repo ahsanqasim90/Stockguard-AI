@@ -10,7 +10,8 @@
     "check": "node scripts/check.js",
     "check:auth-db": "node scripts/check-auth-db.js",
     "check:products-db": "node scripts/check-products-db.js",
-    "check:forecasts-db": "node scripts/check-forecasts-db.js"
+    "check:forecasts-db": "node scripts/check-forecasts-db.js",
+    "check:analytics-db": "node scripts/check-analytics-db.js"
   },
   "engines": {
     "node": "24.x"
