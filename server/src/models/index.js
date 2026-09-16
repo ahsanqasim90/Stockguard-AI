@@ -1,5 +1,6 @@
 export { Business } from "./Business.js";
 export { Forecast } from "./Forecast.js";
+export { ForecastRun } from "./ForecastRun.js";
 export { Inventory } from "./Inventory.js";
 export { ImportBatch } from "./ImportBatch.js";
 export { Product } from "./Product.js";

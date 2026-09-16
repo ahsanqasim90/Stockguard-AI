@@ -12,9 +12,10 @@ router.get("/", (_request, response) => {
     environment: env.nodeEnv,
     timestamp: new Date().toISOString(),
     mongodb: databaseStatus(),
+    businessForecast: { model: "seasonal_naive", available: true },
     mlService: {
-      url: env.mlApiUrl,
-      configured: Boolean(env.mlApiUrl),
+      url: process.env.ML_API_URL || null,
+      configured: Boolean(process.env.ML_API_URL),
     },
   });
 });

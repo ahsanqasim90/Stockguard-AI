@@ -1,7 +1,8 @@
 # StockGuard AI Node API
 
 This is the MERN application backend. It owns authentication and business data in
-MongoDB and calls the existing Python prediction API for ML inference.
+MongoDB and runs a seasonal baseline for uploaded business sales. The Kaggle
+XGBoost Python API remains a separate service for its historical store/product IDs.
 
 ## Run locally
 
@@ -67,6 +68,26 @@ unique within the file. The import validates the whole CSV before writing, then
 upserts products and daily sales so re-importing the same rows does not duplicate
 sales. Upload history is available from `GET /api/imports`. The current endpoint
 accepts up to 2 MB and 10,000 sales rows per file. For larger histories, split
-them into smaller CSV batches. The imported business SKUs do not automatically
-map to the historical Kaggle model's product IDs; forecasting them requires the
-next pipeline integration step.
+them into smaller CSV batches. Imported business SKUs do not automatically map
+to the historical Kaggle model's product IDs.
+
+## Business forecasting API
+
+`GET /api/forecasts/series` lists uploaded store/SKU sales series in the signed-in
+business. `POST /api/forecasts/run` takes JSON such as
+`{"storeId":"<MongoDB store ID>","productId":"<MongoDB product ID>","horizon":28}`.
+Valid horizons are 7, 14, and 28 days. The API requires at least
+`max(28, horizon + 7)` consecutive daily sales records ending at the latest
+actual date. Missing days are rejected rather than silently treated as zero;
+upload explicit zero-sales rows. Forecast dates start on the day after the last
+actual record, even when that record is historical.
+
+The current business model repeats the quantity from the same weekday in the
+previous week. It also holds out the final `horizon` actual days and returns MAE
+and RMSE for that series. Successful runs save daily predictions and backtest
+metadata to MongoDB; `GET /api/forecasts/latest` restores the latest run for the
+dashboard. This baseline runs in the Node API on Vercel and does not trigger
+training on a user's computer. Kaggle XGBoost metrics shown in the UI are for
+the historical Kaggle dataset, not an accuracy claim for uploaded business SKUs.
+Importing a new CSV invalidates that business's saved forecasts so users rerun
+them on the updated sales history.

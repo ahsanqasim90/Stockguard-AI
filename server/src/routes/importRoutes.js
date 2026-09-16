@@ -3,6 +3,8 @@ import { Router } from "express";
 import multer from "multer";
 import { requireAuth, allowRoles } from "../middleware/auth.js";
 import { ImportBatch } from "../models/ImportBatch.js";
+import { Forecast } from "../models/Forecast.js";
+import { ForecastRun } from "../models/ForecastRun.js";
 import { Product } from "../models/Product.js";
 import { Sale } from "../models/Sale.js";
 import { Store } from "../models/Store.js";
@@ -52,6 +54,7 @@ router.post("/sales", allowRoles("owner", "admin", "analyst"), (request, respons
     upsert: true,
   } })), { ordered: false });
   const imported = result.upsertedCount + result.modifiedCount;
+  await Promise.all([Forecast.deleteMany({ business }), ForecastRun.deleteMany({ business })]);
   const batch = await ImportBatch.create({ business, uploadedBy: request.auth.user._id,
     fileName: request.file.originalname.slice(0, 180), records: rows.length, salesUpserted: imported });
   response.status(201).json({ import: { id: batch._id.toString(), name: batch.fileName,

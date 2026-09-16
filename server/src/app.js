@@ -10,6 +10,7 @@ import authRoutes from "./routes/authRoutes.js";
 import healthRoutes from "./routes/healthRoutes.js";
 import importRoutes from "./routes/importRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
+import forecastRoutes from "./routes/forecastRoutes.js";
 
 const app = express();
 const allowedOrigins = new Set(env.clientUrl.split(",").map((origin) => origin.trim()).filter(Boolean));
@@ -52,6 +53,7 @@ app.use("/api/health", healthRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/imports", importRoutes);
+app.use("/api/forecasts", forecastRoutes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
