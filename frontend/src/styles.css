@@ -194,8 +194,8 @@ html[data-theme="light"] {
 .sg-app { min-height: 100vh; display: grid; grid-template-columns: 240px 1fr; }
 .sg-aside { position: sticky; top: 0; z-index: 30; height: 100vh; display: flex; flex-direction: column; padding: 22px 12px; background: #0b1528; border-right: 1px solid #1d2a40; }
 .sg-brand { display: flex; align-items: center; gap: 10px; min-height: 62px; padding: 7px 10px 22px; }
-.sg-brand > span { width: 42px; height: 42px; display: grid; place-items: center; flex: 0 0 auto; overflow: hidden; border-radius: 12px; background: white; }
-.sg-brand img { width: 42px; height: 42px; object-fit: cover; }
+.sg-brand > span { position: relative; width: 42px; height: 42px; display: block; flex: 0 0 auto; overflow: hidden; border-radius: 12px; background: white; }
+.sg-brand img { position: absolute; left: -50%; top: -24%; width: 200%; height: 200%; max-width: none; display: block; }
 .sg-brand > b { font: 800 16px Manrope, sans-serif; color: #f7faff; white-space: nowrap; }
 .sg-brand em { color: #2ad9ba; font-size: 11px; font-style: normal; }
 .sg-brand > button { display: none; margin-left: auto; border: 0; background: transparent; color: #8fa0b9; cursor: pointer; }
@@ -409,8 +409,8 @@ html[data-theme="light"] {
 .login-logo, .login-story-copy, .login-story > small { position: relative; z-index: 1; }
 .login-logo { display: flex; align-items: center; gap: 12px; }
 .login-logo { color: white; text-decoration: none; }
-.login-logo > span { width: 58px; height: 58px; overflow: hidden; border-radius: 14px; background: white; }
-.login-logo img { width: 58px; height: 58px; object-fit: cover; }
+.login-logo > span { position: relative; width: 58px; height: 58px; flex: 0 0 auto; overflow: hidden; border-radius: 14px; background: white; }
+.login-logo img { position: absolute; left: -50%; top: -24%; width: 200%; height: 200%; max-width: none; display: block; }
 .login-logo > b { font: 800 21px Manrope,sans-serif; }
 .login-logo em { color: var(--sg-green); font-style: normal; }
 .login-story-copy { max-width: 600px; }
