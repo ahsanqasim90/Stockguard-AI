@@ -20,9 +20,10 @@ are bcrypt-hashed, the dashboard verifies a JWT session, and admin navigation is
 limited to owner/admin roles. Product and report persistence will be migrated
 from browser storage in the next backend phase.
 
-StockGuard AI combines a React website, a Node.js/Express business API, MongoDB,
-and the Python/XGBoost forecasting service. The pilot model uses store `S0085`
-and products with dense daily sales history.
+StockGuard AI combines a React website, a React Native mobile app, a Node.js/Express
+business API, MongoDB, and a checksum-verified XGBoost inference runtime. Mapped
+production store/product IDs run the trained model; custom IDs use the seasonal
+fallback automatically.
 
 ## MERN backend and MongoDB
 

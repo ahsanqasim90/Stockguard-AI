@@ -16,6 +16,12 @@ const server = app.listen(0);
 const address = server.address();
 const baseUrl = `http://127.0.0.1:${address.port}`;
 try {
+  const health = await fetch(`${baseUrl}/api/health`);
+  const healthBody = await health.json();
+  if (health.status !== 200 || healthBody.productionModel?.model !== "global_xgboost"
+    || healthBody.productionModel?.available !== true) {
+    throw new Error("Production model health check failed.");
+  }
   const invalidRegistration = await fetch(`${baseUrl}/api/auth/register`, {
     method: "POST",
     headers: { "content-type": "application/json" },

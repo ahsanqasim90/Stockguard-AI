@@ -1,8 +1,9 @@
 # StockGuard AI Node API
 
 This is the MERN application backend. It owns authentication and business data in
-MongoDB and runs a seasonal baseline for uploaded business sales. The Kaggle
-XGBoost Python API remains a separate service for its historical store/product IDs.
+MongoDB and runs the verified production XGBoost model directly in Node.js. Series
+whose store or product identifiers are outside the trained mappings use a seasonal
+naive fallback automatically.
 
 ## Run locally
 
@@ -68,8 +69,8 @@ unique within the file. The import validates the whole CSV before writing, then
 upserts products and daily sales so re-importing the same rows does not duplicate
 sales. Upload history is available from `GET /api/imports`. The current endpoint
 accepts up to 2 MB and 10,000 sales rows per file. For larger histories, split
-them into smaller CSV batches. Imported business SKUs do not automatically map
-to the historical Kaggle model's product IDs.
+them into smaller CSV batches. Store IDs and SKUs that match the production
+`S####` and `P####` mappings can use live XGBoost inference.
 
 ## Business forecasting API
 
@@ -82,12 +83,16 @@ actual date. Missing days are rejected rather than silently treated as zero;
 upload explicit zero-sales rows. Forecast dates start on the day after the last
 actual record, even when that record is historical.
 
-The current business model repeats the quantity from the same weekday in the
-previous week. It also holds out the final `horizon` actual days and returns MAE
-and RMSE for that series. Successful runs save daily predictions and backtest
-metadata to MongoDB; `GET /api/forecasts/latest` restores the latest run for the
-dashboard. This baseline runs in the Node API on Vercel and does not trigger
-training on a user's computer. Kaggle XGBoost metrics shown in the UI are for
-the historical Kaggle dataset, not an accuracy claim for uploaded business SKUs.
-Importing a new CSV invalidates that business's saved forecasts so users rerun
-them on the updated sales history.
+The API chooses global XGBoost v1.0.0 when the store/product IDs are mapped and
+at least `28 + horizon` consecutive rows are available, so the recursive holdout
+can be measured with 28 lag days. Other series use the previous-week seasonal
+fallback and require `max(28, horizon + 7)` rows. Both paths hold out the final
+`horizon` actual days and return per-series MAE and RMSE. Successful runs save
+daily predictions, the selected model, the selection reason, and backtest metadata
+to MongoDB; `GET /api/forecasts/latest` restores the latest run. Inference runs in
+the Node API on Vercel and never trains on a user's computer. Importing a new CSV
+invalidates that business's saved forecasts so users rerun them on updated history.
+
+The model bundle is checksum-verified during API startup. Run `npm run check:model`
+inside `server` to compare the JavaScript scorer against official XGBoost 3.2
+predictions and verify recursive feature engineering.

@@ -13,17 +13,17 @@ async function expect(response, status) {
   if (response.status !== status) throw new Error(`Expected ${status}, received ${response.status}: ${body.message || ""}`);
   return body;
 }
-function csv(count) {
+function csv(count, { sku = "FC-001", storeId = "DEFAULT", name = "Forecast Test Widget" } = {}) {
   const start = Date.UTC(2026, 0, 1);
   const rows = Array.from({ length: count }, (_, i) => {
     const date = new Date(start + i * 86_400_000).toISOString().slice(0, 10);
-    return `${date},Forecast Test Widget,FC-001,${i % 7 + 1},${(i % 7 + 1) * 10},Food`;
+    return `${date},${name},${sku},${i % 7 + 1},${(i % 7 + 1) * 10},Food,${storeId}`;
   });
-  return `date,product_name,sku,quantity_sold,revenue,category\n${rows.join("\n")}\n`;
+  return `date,product_name,sku,quantity_sold,revenue,category,store_id\n${rows.join("\n")}\n`;
 }
-function file(count) {
+function file(count, options) {
   const form = new FormData();
-  form.append("file", new Blob([csv(count)], { type: "text/csv" }), "forecast-sales.csv");
+  form.append("file", new Blob([csv(count, options)], { type: "text/csv" }), "forecast-sales.csv");
   return form;
 }
 
@@ -46,10 +46,11 @@ try {
   let series = await expect(await fetch(`${base}/forecasts/series`, { headers }), 200);
   if (series.series.length !== 1 || series.series[0].observations !== 14) throw new Error("Sales series list is incorrect.");
   const selected = series.series[0];
-  const run = (horizon, auth = headers) => fetch(`${base}/forecasts/run`, { method: "POST",
+  const runFor = (target, horizon, auth = headers) => fetch(`${base}/forecasts/run`, { method: "POST",
     headers: { ...auth, "content-type": "application/json" },
-    body: JSON.stringify({ storeId: selected.storeId, productId: selected.productId, horizon }),
+    body: JSON.stringify({ storeId: target.storeId, productId: target.productId, horizon }),
   });
+  const run = (horizon, auth = headers) => runFor(selected, horizon, auth);
   const short = await expect(await run(28), 422);
   if (!short.message.includes("consecutive")) throw new Error("Short history did not explain the requirement.");
 
@@ -76,6 +77,17 @@ try {
   const gap = await expect(await run(28), 422);
   if (!gap.message.includes("missing dates")) throw new Error("Gap in daily history was not detected.");
 
+  await expect(await fetch(`${base}/imports/sales`, { method: "POST", headers,
+    body: file(60, { sku: "P0131", storeId: "S0085", name: "Mapped Production Series" }) }), 201);
+  series = await expect(await fetch(`${base}/forecasts/series`, { headers }), 200);
+  const mapped = series.series.find((item) => item.storeCode === "S0085" && item.sku === "P0131");
+  if (!mapped || mapped.observations !== 60) throw new Error("Mapped XGBoost series was not imported.");
+  const liveModel = await expect(await runFor(mapped, 7), 201);
+  if (liveModel.run.model !== "global_xgboost" || liveModel.run.modelVersion !== "1.0.0"
+    || liveModel.run.predictions.length !== 7 || !liveModel.run.modelSelection?.includes("production model")) {
+    throw new Error("Mapped series did not run through the production XGBoost model.");
+  }
+
   const other = await expect(await fetch(`${base}/auth/register`, { method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ name: "Other Temporary Forecast Test", businessName: "Other Forecast Workspace",
@@ -90,7 +102,7 @@ try {
   if (otherLatest.run !== null) throw new Error("A different business could see this forecast.");
 
   console.log(`${remoteBaseUrl ? "Live" : "Local"} StockGuard forecasting integration PASSED`);
-  console.log("CSV history, minimum days, gap detection, 7/28-day prediction, holdout metrics, persistence and tenant isolation verified.");
+  console.log("CSV history, fallback forecasts, mapped XGBoost inference, gap detection, persistence and tenant isolation verified.");
 } finally {
   for (const business of businesses) {
     const filter = { business };

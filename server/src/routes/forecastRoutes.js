@@ -28,7 +28,8 @@ async function publicRun(run) {
   if (!store || !product || forecasts.length !== run.horizonDays) return null;
   return { id: run.runId, storeId: store._id.toString(), storeCode: store.storeId,
     productId: product._id.toString(), sku: product.sku || product.productId, productName: product.name,
-    model: run.modelName, modelVersion: run.modelVersion, horizon: run.horizonDays,
+    model: run.modelName, modelVersion: run.modelVersion, modelSelection: run.modelSelection || null,
+    horizon: run.horizonDays,
     latestActualDate: dateString(run.latestActualDate), forecastStartDate: dateString(run.forecastStartDate),
     forecastTotal: run.forecastTotal, generatedAt: run.createdAt,
     backtest: { observations: run.backtest.observations, cutoff: dateString(run.backtest.cutoff),
@@ -78,7 +79,10 @@ router.post("/run", allowRoles("owner", "admin", "analyst"), async (request, res
   if (!store || !product) throw forecastError("This store or product was not found in your business.", 404);
   const sales = (await Sale.find({ business, store: store._id, product: product._id })
     .sort({ date: -1 }).limit(365).select("date quantity").lean()).reverse();
-  const calculated = createBusinessForecast(sales, horizon);
+  const calculated = createBusinessForecast(sales, horizon, {
+    storeCode: store.storeId,
+    productCode: product.sku || product.productId,
+  });
   const runId = crypto.randomUUID();
   const generatedAt = new Date();
   await Forecast.bulkWrite(calculated.predictions.map((point) => ({ updateOne: {
@@ -90,7 +94,8 @@ router.post("/run", allowRoles("owner", "admin", "analyst"), async (request, res
     upsert: true,
   } })));
   const run = await ForecastRun.create({ business, runId, store: store._id, product: product._id,
-    modelName: calculated.model, modelVersion: calculated.modelVersion, horizonDays: horizon,
+    modelName: calculated.model, modelVersion: calculated.modelVersion,
+    modelSelection: calculated.modelSelection, horizonDays: horizon,
     latestActualDate: new Date(`${calculated.latestActualDate}T00:00:00.000Z`),
     forecastStartDate: new Date(`${calculated.forecastStartDate}T00:00:00.000Z`),
     forecastTotal: calculated.forecastTotal,

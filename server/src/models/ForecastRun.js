@@ -8,6 +8,7 @@ const forecastRunSchema = new mongoose.Schema({
   product: { type: objectId, ref: "Product", required: true, index: true },
   modelName: { type: String, required: true },
   modelVersion: { type: String, required: true },
+  modelSelection: { type: String, default: null },
   horizonDays: { type: Number, required: true, enum: [7, 14, 28] },
   latestActualDate: { type: Date, required: true },
   forecastStartDate: { type: Date, required: true },

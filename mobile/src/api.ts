@@ -6,7 +6,7 @@ const REFRESH_KEY = 'stockguard_refresh_token';
 export type User = { id: string; name: string; email: string; role: string; business: { name: string; currency: string } | null };
 export type Product = { id: string; name: string; sku: string; category: string; supplier: string; price: number; stock: number; reorder: number; status: string };
 export type Series = { storeId: string; storeCode: string; productId: string; sku: string; productName: string; observations: number; latestActualDate: string };
-export type ForecastRun = { id: string; storeCode: string; sku: string; productName: string; model: string; horizon: number; forecastTotal: number; latestActualDate: string; forecastStartDate: string; backtest: { observations: number; mae: number; rmse: number }; predictions: { date: string; forecast_sales: number }[] };
+export type ForecastRun = { id: string; storeCode: string; sku: string; productName: string; model: string; modelVersion: string; modelSelection?: string | null; horizon: number; forecastTotal: number; latestActualDate: string; forecastStartDate: string; backtest: { observations: number; mae: number; rmse: number }; predictions: { date: string; forecast_sales: number }[] };
 export type Overview = {
   period: { days: number; startDate: string | null; endDate: string | null };
   totals: { revenue: number; units: number; saleRecords: number; lowStockLocations: number };

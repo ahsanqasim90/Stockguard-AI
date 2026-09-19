@@ -1,0 +1,42 @@
+{
+  "project": "StockGuard AI",
+  "model_version": "1.0.0",
+  "model_type": "global_xgboost",
+  "model_file": "stockguard_xgboost.json",
+  "model_sha256": "61dda9da18aa090ed26304319c7162215f0a0158a46af18dbfcc555f92851c3c",
+  "xgboost_version": "3.2.0",
+  "training_device": "cuda:0",
+  "training_end_date": "2019-10-31",
+  "forecast_start_date": "2019-11-01",
+  "forecast_horizon_days": 28,
+  "training_rows": 8172438,
+  "training_seconds": 3.56,
+  "boosting_rounds": 83,
+  "forecastable_series": 11626,
+  "feature_columns": [
+    "store_code",
+    "product_code",
+    "lag_1",
+    "lag_7",
+    "lag_14",
+    "lag_28",
+    "rolling_7",
+    "rolling_28",
+    "day_sin",
+    "day_cos",
+    "month_sin",
+    "month_cos"
+  ],
+  "production_policy": {
+    "default_model": "xgboost",
+    "fallback_model": "seasonal_naive"
+  },
+  "three_fold_recursive_backtest": {
+    "observations": 986433,
+    "xgboost_mae": 0.574939,
+    "xgboost_rmse": 2.021802,
+    "seasonal_mae": 0.658729,
+    "seasonal_rmse": 2.459768,
+    "mae_improvement_percent": 12.72
+  }
+}

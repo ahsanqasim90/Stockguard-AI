@@ -4,6 +4,11 @@
   "installCommand": "npm --prefix server install && npm --prefix frontend install",
   "buildCommand": "npm --prefix frontend run build",
   "outputDirectory": "frontend/dist",
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "server/models/production/**"
+    }
+  },
   "rewrites": [
     { "source": "/api", "destination": "/api/index" },
     { "source": "/api/:path*", "destination": "/api/index" },
