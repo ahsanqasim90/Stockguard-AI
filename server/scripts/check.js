@@ -25,6 +25,21 @@ try {
 
   const protectedProfile = await fetch(`${baseUrl}/api/auth/me`);
   if (protectedProfile.status !== 401) throw new Error("Protected route check failed.");
+
+  const invalidMobileLogin = await fetch(`${baseUrl}/api/auth/mobile/login`, {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({}),
+  });
+  if (invalidMobileLogin.status !== 400) throw new Error("Mobile login validation check failed.");
+
+  const invalidMobileRefresh = await fetch(`${baseUrl}/api/auth/mobile/refresh`, {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({}),
+  });
+  if (invalidMobileRefresh.status !== 400) throw new Error("Mobile refresh validation check failed.");
+
+  const mobileLogout = await fetch(`${baseUrl}/api/auth/mobile/logout`, {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ refreshToken: "invalid" }),
+  });
+  if (mobileLogout.status !== 204) throw new Error("Mobile logout should safely clear an invalid session.");
 } finally {
   await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
 }
@@ -32,5 +47,5 @@ try {
 console.log("StockGuard MERN backend check PASSED");
 console.log(`Mongoose models: ${expectedModels.join(", ")}`);
 console.log("Health endpoint: GET /api/health");
-console.log("Authentication endpoints: register, login, refresh, me, logout");
+console.log("Authentication endpoints: web and mobile login/refresh/logout, register, me");
 console.log("Authentication validation and route protection: PASSED");

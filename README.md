@@ -2,6 +2,10 @@
 
 Live dashboard: https://stockguard-ai-ten.vercel.app
 
+## Mobile app
+
+The React Native/Expo app is in [`mobile`](mobile/README.md). It connects to the same StockGuard API for login, dashboard analytics, products, CSV imports, and demand forecasts. See its README for phone setup and the current mobile scope.
+
 ## Web administration panel
 
 The responsive React administration panel includes dashboard analytics, product

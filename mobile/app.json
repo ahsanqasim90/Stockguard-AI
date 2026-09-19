@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "StockGuard AI",
+    "slug": "stockguard-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/stockguard-logo.png",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.stockguardai.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/stockguard-logo.png"
+      },
+      "package": "com.stockguardai.app",
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/stockguard-logo.png"
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
+  }
+}

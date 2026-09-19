@@ -67,6 +67,46 @@ function issueSession(response, user, statusCode = 200) {
   return response.status(statusCode).json({ accessToken, user: publicUser(user) });
 }
 
+function issueMobileSession(response, user) {
+  response.set("Cache-Control", "no-store");
+  return response.json({ accessToken: createAccessToken(user), refreshToken: createRefreshToken(user), user: publicUser(user) });
+}
+
+async function findActiveRefreshUser(token) {
+  if (!token) {
+    const error = new Error("Refresh session is missing.");
+    error.statusCode = 401;
+    throw error;
+  }
+  const payload = verifyRefreshToken(token);
+  const user = await User.findById(payload.sub).select("+tokenVersion").populate("business");
+  if (!user || user.status !== "active" || user.business?.status === "suspended" || user.tokenVersion !== payload.version) {
+    const error = new Error("Refresh session is no longer valid.");
+    error.statusCode = 401;
+    throw error;
+  }
+  return user;
+}
+
+async function authenticateCredentials(body) {
+  const data = parse(loginSchema, body);
+  const user = await User.findOne({ email: data.email }).select("+passwordHash +tokenVersion").populate("business");
+  const passwordMatches = user ? await bcrypt.compare(data.password, user.passwordHash) : false;
+  if (!user || !passwordMatches) {
+    const error = new Error("Email or password is incorrect.");
+    error.statusCode = 401;
+    throw error;
+  }
+  if (user.status !== "active" || user.business?.status === "suspended") {
+    const error = new Error("This account is not active.");
+    error.statusCode = 403;
+    throw error;
+  }
+  user.lastLoginAt = new Date();
+  await user.save();
+  return user;
+}
+
 function makeSlug(name) {
   const base = name.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 70) || "business";
   return `${base}-${crypto.randomBytes(3).toString("hex")}`;
@@ -106,43 +146,49 @@ router.post("/register", async (request, response, next) => {
 
 router.post("/login", async (request, response, next) => {
   try {
-    const data = parse(loginSchema, request.body);
-    const user = await User.findOne({ email: data.email }).select("+passwordHash +tokenVersion").populate("business");
-    const passwordMatches = user ? await bcrypt.compare(data.password, user.passwordHash) : false;
-    if (!user || !passwordMatches) {
-      const error = new Error("Email or password is incorrect.");
-      error.statusCode = 401;
-      throw error;
-    }
-    if (user.status !== "active" || user.business?.status === "suspended") {
-      const error = new Error("This account is not active.");
-      error.statusCode = 403;
-      throw error;
-    }
-    user.lastLoginAt = new Date();
-    await user.save();
-    return issueSession(response, user);
+    return issueSession(response, await authenticateCredentials(request.body));
   } catch (error) {
     return next(error);
   }
 });
 
+// Native clients cannot rely on the web app's HttpOnly cookie jar. They store
+// this refresh token in the OS secure store and send it only to these endpoints.
+router.post("/mobile/login", async (request, response, next) => {
+  try {
+    return issueMobileSession(response, await authenticateCredentials(request.body));
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post("/mobile/refresh", async (request, response, next) => {
+  try {
+    const token = parse(z.object({ refreshToken: z.string().min(1) }), request.body).refreshToken;
+    return issueMobileSession(response, await findActiveRefreshUser(token));
+  } catch (error) {
+    if (!error.statusCode) error.statusCode = 401;
+    return next(error);
+  }
+});
+
+router.post("/mobile/logout", async (request, response) => {
+  const token = request.body?.refreshToken;
+  if (typeof token === "string") {
+    try {
+      const payload = verifyRefreshToken(token);
+      await User.updateOne({ _id: payload.sub, tokenVersion: payload.version }, { $inc: { tokenVersion: 1 } });
+    } catch {
+      // Expired or malformed sessions are already logged out on the device.
+    }
+  }
+  response.status(204).end();
+});
+
 router.post("/refresh", async (request, response, next) => {
   try {
     const token = readCookie(request, refreshCookieName);
-    if (!token) {
-      const error = new Error("Refresh session is missing.");
-      error.statusCode = 401;
-      throw error;
-    }
-    const payload = verifyRefreshToken(token);
-    const user = await User.findById(payload.sub).select("+tokenVersion").populate("business");
-    if (!user || user.status !== "active" || user.tokenVersion !== payload.version) {
-      const error = new Error("Refresh session is no longer valid.");
-      error.statusCode = 401;
-      throw error;
-    }
-    return issueSession(response, user);
+    return issueSession(response, await findActiveRefreshUser(token));
   } catch (error) {
     clearRefreshCookie(response);
     if (!error.statusCode) error.statusCode = 401;

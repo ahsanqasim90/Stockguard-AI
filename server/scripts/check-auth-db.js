@@ -63,8 +63,37 @@ try {
   });
   if (login.status !== 200) throw new Error(`Expected login 200, received ${login.status}.`);
 
+  const mobileLogin = await fetch(`${baseUrl}/mobile/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (mobileLogin.status !== 200 || mobileLogin.headers.get("set-cookie"))
+    throw new Error("Mobile login should return 200 without a browser cookie.");
+  const mobileSession = await json(mobileLogin);
+  if (!mobileSession.accessToken || !mobileSession.refreshToken) throw new Error("Mobile tokens are missing.");
+
+  const mobileRefresh = await fetch(`${baseUrl}/mobile/refresh`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ refreshToken: mobileSession.refreshToken }),
+  });
+  if (mobileRefresh.status !== 200) throw new Error(`Expected mobile refresh 200, received ${mobileRefresh.status}.`);
+  const refreshedMobileSession = await json(mobileRefresh);
+  const mobileProfile = await fetch(`${baseUrl}/me`, { headers: { authorization: `Bearer ${refreshedMobileSession.accessToken}` } });
+  if (mobileProfile.status !== 200) throw new Error("Refreshed mobile access token was rejected.");
+
+  const mobileLogout = await fetch(`${baseUrl}/mobile/logout`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ refreshToken: refreshedMobileSession.refreshToken }),
+  });
+  if (mobileLogout.status !== 204) throw new Error(`Expected mobile logout 204, received ${mobileLogout.status}.`);
+  const revokedMobileProfile = await fetch(`${baseUrl}/me`, { headers: { authorization: `Bearer ${refreshedMobileSession.accessToken}` } });
+  if (revokedMobileProfile.status !== 401) throw new Error("Mobile logout did not invalidate the access token.");
+
   console.log(`${remoteBaseUrl ? "Live" : "Local"} MongoDB authentication integration check PASSED`);
-  console.log("Registration, protected route, refresh, logout invalidation, and login verified.");
+  console.log("Web and mobile login, protected route, refresh, and logout invalidation verified.");
 } finally {
   const createdUser = await models.User.findOne({ email }).select("business").lean().catch(() => null);
   businessId ||= createdUser?.business;
