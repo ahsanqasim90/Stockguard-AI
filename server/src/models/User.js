@@ -15,6 +15,17 @@ const userSchema = new mongoose.Schema({
   status: { type: String, enum: ["active", "invited", "disabled"], default: "active", index: true },
   tokenVersion: { type: Number, default: 0, select: false },
   lastLoginAt: { type: Date, default: null },
+  preferences: {
+    notifications: {
+      lowStock: { type: Boolean, default: true },
+      forecastReady: { type: Boolean, default: true },
+      weeklySummary: { type: Boolean, default: false },
+      demandSpike: { type: Boolean, default: true },
+      newLogin: { type: Boolean, default: true },
+      email: { type: Boolean, default: true },
+    },
+    theme: { type: String, enum: ["dark", "system"], default: "dark" },
+  },
 }, baseOptions);
 
 export const User = mongoose.model("User", userSchema);

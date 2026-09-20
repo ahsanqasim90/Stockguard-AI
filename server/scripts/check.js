@@ -32,6 +32,12 @@ try {
   const protectedProfile = await fetch(`${baseUrl}/api/auth/me`);
   if (protectedProfile.status !== 401) throw new Error("Protected route check failed.");
 
+  const protectedSettings = await fetch(`${baseUrl}/api/settings`);
+  if (protectedSettings.status !== 401) throw new Error("Settings route protection check failed.");
+
+  const protectedAdmin = await fetch(`${baseUrl}/api/admin/users`);
+  if (protectedAdmin.status !== 401) throw new Error("Admin route protection check failed.");
+
   const invalidMobileLogin = await fetch(`${baseUrl}/api/auth/mobile/login`, {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({}),
   });
@@ -54,4 +60,4 @@ console.log("StockGuard MERN backend check PASSED");
 console.log(`Mongoose models: ${expectedModels.join(", ")}`);
 console.log("Health endpoint: GET /api/health");
 console.log("Authentication endpoints: web and mobile login/refresh/logout, register, me");
-console.log("Authentication validation and route protection: PASSED");
+console.log("Authentication, settings and admin route protection: PASSED");

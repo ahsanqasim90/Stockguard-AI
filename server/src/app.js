@@ -13,6 +13,8 @@ import productRoutes from "./routes/productRoutes.js";
 import forecastRoutes from "./routes/forecastRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
+import settingsRoutes from "./routes/settingsRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 const app = express();
 const allowedOrigins = new Set(env.clientUrl.split(",").map((origin) => origin.trim()).filter(Boolean));
@@ -58,6 +60,8 @@ app.use("/api/imports", importRoutes);
 app.use("/api/forecasts", forecastRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/settings", settingsRoutes);
+app.use("/api/admin", adminRoutes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 

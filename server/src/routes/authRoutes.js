@@ -28,6 +28,12 @@ const registerSchema = z.object({
   businessName: z.string().trim().min(2).max(120),
 });
 const loginSchema = z.object({ email, password: z.string().min(1).max(128) });
+const profileSchema = z.object({
+  name: z.string().trim().min(2).max(100).optional(),
+  businessName: z.string().trim().min(2).max(120).optional(),
+  timezone: z.string().trim().min(2).max(80).optional(),
+  currency: z.string().trim().min(3).max(3).transform((value) => value.toUpperCase()).optional(),
+}).refine((value) => Object.keys(value).length > 0, "Provide at least one profile field.");
 
 function parse(schema, body) {
   const result = schema.safeParse(body);
@@ -52,6 +58,7 @@ function publicUser(user) {
     role: user.role,
     status: user.status,
     lastLoginAt: user.lastLoginAt,
+    preferences: user.preferences || {},
     business: business ? {
       id: business._id.toString(),
       name: business.name,
@@ -198,6 +205,27 @@ router.post("/refresh", async (request, response, next) => {
 
 router.get("/me", requireAuth, (request, response) => {
   response.json({ user: publicUser(request.auth.user) });
+});
+
+router.patch("/me", requireAuth, async (request, response) => {
+  const data = parse(profileSchema, request.body);
+  const user = request.auth.user;
+  if (data.name) user.name = data.name;
+  const businessFields = ["businessName", "timezone", "currency"].filter((field) => data[field] !== undefined);
+  if (businessFields.length) {
+    if (!["owner", "admin"].includes(user.role)) {
+      const error = new Error("Only owners and administrators can change business details.");
+      error.statusCode = 403;
+      throw error;
+    }
+    if (data.businessName) request.auth.business.name = data.businessName;
+    if (data.timezone) request.auth.business.timezone = data.timezone;
+    if (data.currency) request.auth.business.currency = data.currency;
+    await request.auth.business.save();
+  }
+  await user.save();
+  user.business = request.auth.business;
+  response.json({ user: publicUser(user) });
 });
 
 router.post("/logout", async (request, response) => {

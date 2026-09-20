@@ -3,19 +3,32 @@ import * as SecureStore from 'expo-secure-store';
 const API_URL = (process.env.EXPO_PUBLIC_API_URL || 'https://stockguard-ai-ten.vercel.app/api').replace(/\/+$/, '');
 const REFRESH_KEY = 'stockguard_refresh_token';
 
-export type User = { id: string; name: string; email: string; role: string; business: { name: string; currency: string } | null };
+export type NotificationSettings = { lowStock: boolean; forecastReady: boolean; weeklySummary: boolean; demandSpike: boolean; newLogin: boolean; email: boolean };
+export type User = {
+  id: string; name: string; email: string; role: string; status?: string; lastLoginAt?: string | null;
+  preferences?: { notifications?: Partial<NotificationSettings>; theme?: 'dark' | 'system' };
+  business: { id?: string; name: string; timezone?: string; currency: string } | null;
+};
 export type Product = { id: string; name: string; sku: string; category: string; supplier: string; price: number; stock: number; reorder: number; status: string };
 export type Series = { storeId: string; storeCode: string; productId: string; sku: string; productName: string; observations: number; latestActualDate: string };
 export type ForecastRun = { id: string; storeCode: string; sku: string; productName: string; model: string; modelVersion: string; modelSelection?: string | null; comparisonServiceVersion?: string | null; comparisons: { model: string; modelVersion: string; mae: number; rmse: number; selected: boolean; durationMs: number }[]; horizon: number; forecastTotal: number; latestActualDate: string; forecastStartDate: string; backtest: { observations: number; mae: number; rmse: number }; predictions: { date: string; forecast_sales: number }[] };
 export type Overview = {
-  period: { days: number; startDate: string | null; endDate: string | null };
-  totals: { revenue: number; units: number; saleRecords: number; lowStockLocations: number };
-  daily: { date: string; revenue: number; units: number }[];
-  productSales: { productId: string; name: string; sku: string; revenue: number; units: number }[];
-  inventory: { productId: string; name: string; sku: string; store: string; stock: number; reorderPoint: number; lowStock: boolean }[];
-  latestForecast: { productName: string; model: string; forecastTotal: number; horizonDays: number } | null;
+  period: { days: number; startDate: string | null; endDate: string | null; referenceDate?: string | null; recordedDays?: number };
+  totals: { revenue: number; units: number; saleRecords: number; lowStockLocations: number; averageRecordedDayRevenue?: number };
+  daily: { date: string; revenue: number; units: number; records?: number }[];
+  categories: { name: string; revenue: number; units: number }[];
+  productSales: { productId: string; name: string; sku: string; category?: string; revenue: number; units: number }[];
+  inventory: { productId: string; name: string; sku: string; category?: string; store: string; stock: number; reorderPoint: number; lowStock: boolean }[];
+  latestForecast: { productName: string; store?: string; model: string; forecastTotal: number; horizonDays: number; generatedAt?: string } | null;
 };
 export type ImportRecord = { id: string; name: string; records: number; date: string; status: string };
+export type ReportRecord = { id: string; name: string; type: 'sales' | 'inventory' | 'forecast'; format: string; days?: number; filename: string; sizeBytes: number; createdAt: string };
+export type AdminUser = { id: string; name: string; email: string; role: string; status: string; lastLoginAt: string | null; createdAt: string };
+export type SettingsData = {
+  notifications: NotificationSettings;
+  theme: 'dark' | 'system';
+  business: { safetyStockPercent: number; defaultLeadTimeDays: number; forecastHorizonDays: 7 | 14 | 28 };
+};
 
 type Session = { accessToken: string; refreshToken: string; user: User };
 let accessToken: string | null = null;
@@ -95,6 +108,6 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   return readResponse<T>(response);
 }
 
-export function jsonBody(value: unknown): RequestInit {
-  return { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(value) };
+export function jsonBody(value: unknown, method: 'POST' | 'PATCH' = 'POST'): RequestInit {
+  return { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(value) };
 }
