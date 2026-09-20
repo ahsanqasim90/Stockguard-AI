@@ -13,7 +13,7 @@ For another API, set `EXPO_PUBLIC_API_URL` before starting Expo. This value is p
 
 Mobile refresh tokens are stored with Expo SecureStore. The access token is held in memory; `/api/auth/mobile/login`, `/api/auth/mobile/refresh`, and `/api/auth/mobile/logout` handle the native session without changing the website's cookie-based session. Signing out revokes the account's current tokens, including web sessions.
 
-CSV uploads follow the **current backend** limit of 2 MB and 10,000 rows per file. Required columns are `date,sku,product_name,category,quantity_sold,revenue`; `store_id` is optional. Business forecasts use the server's seasonal baseline for newly uploaded data. The trained Kaggle XGBoost model covers the historical retail dataset and is not yet retrained on each business's uploads.
+CSV uploads follow the **current backend** limit of 2 MB and 10,000 rows per file. Required columns are `date,sku,product_name,category,quantity_sold,revenue`; `store_id` is optional. Each business forecast measures Linear Regression, ARIMA, Random Forest and the available XGBoost/seasonal candidate on the same holdout. The API automatically saves the forecast with the lowest MAE (using RMSE as the tie-breaker).
 
 ## Checks
 

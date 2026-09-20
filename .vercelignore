@@ -2,7 +2,6 @@
 .github
 .vscode
 api/__pycache__/
-api/*.py
 artifacts/
 configs/
 data/
@@ -11,7 +10,6 @@ python_packages/
 scripts/
 .venv/
 *.ps1
-requirements.txt
 README.md
 tmp/
 .npm-cache/

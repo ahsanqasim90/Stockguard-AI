@@ -7,9 +7,14 @@
   "functions": {
     "api/index.js": {
       "includeFiles": "server/models/production/**"
+    },
+    "api/main.py": {
+      "maxDuration": 60,
+      "excludeFiles": "{frontend/**,mobile/**,server/**,ml/**,data/**,tmp/**,work/**}"
     }
   },
   "rewrites": [
+    { "source": "/ml", "destination": "/api/main" },
     { "source": "/api", "destination": "/api/index" },
     { "source": "/api/:path*", "destination": "/api/index" },
     { "source": "/login", "destination": "/index.html" },

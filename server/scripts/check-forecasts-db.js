@@ -54,19 +54,22 @@ try {
   const short = await expect(await run(28), 422);
   if (!short.message.includes("consecutive")) throw new Error("Short history did not explain the requirement.");
 
-  await expect(await fetch(`${base}/imports/sales`, { method: "POST", headers, body: file(36) }), 201);
+  await expect(await fetch(`${base}/imports/sales`, { method: "POST", headers, body: file(50) }), 201);
   series = await expect(await fetch(`${base}/forecasts/series`, { headers }), 200);
-  if (series.series[0].observations !== 36) throw new Error("Full sales history was not available.");
+  if (series.series[0].observations !== 50) throw new Error("Full sales history was not available.");
   const seven = await expect(await run(7), 201);
-  if (seven.run.predictions.length !== 7 || seven.run.backtest.mae !== 0 || seven.run.backtest.rmse !== 0)
-    throw new Error("Seven-day seasonal forecast or holdout backtest is incorrect.");
+  if (seven.run.predictions.length !== 7 || seven.run.comparisons.length !== 4
+    || !seven.run.comparisons.some((item) => item.model === "linear_regression")
+    || !seven.run.comparisons.some((item) => item.model === "arima")
+    || !seven.run.comparisons.some((item) => item.model === "random_forest"))
+    throw new Error("Seven-day live model comparison is incorrect.");
   const twentyEight = await expect(await run(28), 201);
   if (twentyEight.run.predictions.length !== 28 || twentyEight.run.backtest.mae !== 0 || twentyEight.run.backtest.rmse !== 0)
-    throw new Error("Twenty-eight-day seasonal forecast or holdout backtest is incorrect.");
-  if (twentyEight.run.predictions[0].date !== "2026-02-06") throw new Error("Forecast did not start after the last actual day.");
+    throw new Error("Twenty-eight-day automatic selection or holdout backtest is incorrect.");
+  if (twentyEight.run.predictions[0].date !== "2026-02-20") throw new Error("Forecast did not start after the last actual day.");
   const latest = await expect(await fetch(`${base}/forecasts/latest`, { headers }), 200);
   if (latest.run.id !== twentyEight.run.id || latest.run.predictions.length !== 28) throw new Error("Saved forecast was not restored.");
-  await expect(await fetch(`${base}/imports/sales`, { method: "POST", headers, body: file(36) }), 201);
+  await expect(await fetch(`${base}/imports/sales`, { method: "POST", headers, body: file(50) }), 201);
   const invalidated = await expect(await fetch(`${base}/forecasts/latest`, { headers }), 200);
   if (invalidated.run !== null) throw new Error("CSV re-import did not invalidate stale forecasts.");
   await expect(await run(28), 201);
@@ -83,9 +86,11 @@ try {
   const mapped = series.series.find((item) => item.storeCode === "S0085" && item.sku === "P0131");
   if (!mapped || mapped.observations !== 60) throw new Error("Mapped XGBoost series was not imported.");
   const liveModel = await expect(await runFor(mapped, 7), 201);
-  if (liveModel.run.model !== "global_xgboost" || liveModel.run.modelVersion !== "1.0.0"
-    || liveModel.run.predictions.length !== 7 || !liveModel.run.modelSelection?.includes("production model")) {
-    throw new Error("Mapped series did not run through the production XGBoost model.");
+  if (liveModel.run.predictions.length !== 7 || liveModel.run.comparisons.length !== 4
+    || !liveModel.run.comparisons.some((item) => item.model === "global_xgboost")
+    || liveModel.run.comparisons.filter((item) => item.selected).length !== 1
+    || !liveModel.run.modelSelection?.includes("lowest holdout MAE")) {
+    throw new Error("Mapped series did not compare production XGBoost with the Python models.");
   }
 
   const other = await expect(await fetch(`${base}/auth/register`, { method: "POST",
@@ -102,7 +107,7 @@ try {
   if (otherLatest.run !== null) throw new Error("A different business could see this forecast.");
 
   console.log(`${remoteBaseUrl ? "Live" : "Local"} StockGuard forecasting integration PASSED`);
-  console.log("CSV history, fallback forecasts, mapped XGBoost inference, gap detection, persistence and tenant isolation verified.");
+  console.log("CSV history, signed Python comparison, automatic selection, mapped XGBoost, persistence and tenant isolation verified.");
 } finally {
   for (const business of businesses) {
     const filter = { business };

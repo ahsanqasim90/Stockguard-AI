@@ -78,20 +78,20 @@ them into smaller CSV batches. Store IDs and SKUs that match the production
 business. `POST /api/forecasts/run` takes JSON such as
 `{"storeId":"<MongoDB store ID>","productId":"<MongoDB product ID>","horizon":28}`.
 Valid horizons are 7, 14, and 28 days. The API requires at least
-`max(28, horizon + 7)` consecutive daily sales records ending at the latest
+`max(28, horizon + 14)` consecutive daily sales records ending at the latest
 actual date. Missing days are rejected rather than silently treated as zero;
 upload explicit zero-sales rows. Forecast dates start on the day after the last
 actual record, even when that record is historical.
 
-The API chooses global XGBoost v1.0.0 when the store/product IDs are mapped and
-at least `28 + horizon` consecutive rows are available, so the recursive holdout
-can be measured with 28 lag days. Other series use the previous-week seasonal
-fallback and require `max(28, horizon + 7)` rows. Both paths hold out the final
-`horizon` actual days and return per-series MAE and RMSE. Successful runs save
-daily predictions, the selected model, the selection reason, and backtest metadata
-to MongoDB; `GET /api/forecasts/latest` restores the latest run. Inference runs in
-the Node API on Vercel and never trains on a user's computer. Importing a new CSV
-invalidates that business's saved forecasts so users rerun them on updated history.
+The signed Python service backtests Linear Regression, ARIMA and Random Forest.
+The Node API adds global XGBoost v1.0.0 for mapped store/product IDs or the
+previous-week seasonal baseline for custom IDs. Every candidate uses the same
+final `horizon` days as a recursive holdout. The API compares MAE and RMSE and
+automatically saves the lowest-MAE forecast (RMSE breaks ties), its daily values,
+the selection reason and all comparison metrics to MongoDB. A measured comparison
+requires `horizon + 14` consecutive rows. `GET /api/forecasts/latest` restores the
+latest run. Importing a new CSV invalidates that business's saved forecasts so
+users rerun them on updated history.
 
 The model bundle is checksum-verified during API startup. Run `npm run check:model`
 inside `server` to compare the JavaScript scorer against official XGBoost 3.2

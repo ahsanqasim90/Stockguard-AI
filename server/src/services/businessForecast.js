@@ -123,3 +123,40 @@ export function createBusinessForecast(sales, horizon, series = {}) {
     predictions,
   };
 }
+
+export function selectBestForecast(nodeForecast, pythonResult, sales) {
+  const latestActualDate = dateString(sales.at(-1).date);
+  const history = sales.slice(-28).map((sale) => ({ date: dateString(sale.date), quantity: sale.quantity }));
+  const pythonCandidates = pythonResult.comparisons.filter((item) => item.status === "ready").map((item) => ({
+    model: item.model,
+    modelVersion: item.modelVersion,
+    horizon: nodeForecast.horizon,
+    latestActualDate,
+    forecastStartDate: item.predictions[0].date,
+    forecastTotal: item.forecastTotal,
+    backtest: item.backtest,
+    history,
+    predictions: item.predictions,
+    durationMs: item.durationMs,
+  }));
+  const candidates = [{ ...nodeForecast, durationMs: 0 }, ...pythonCandidates];
+  const winner = candidates.reduce((best, item) => (
+    item.backtest.mae < best.backtest.mae
+      || (item.backtest.mae === best.backtest.mae && item.backtest.rmse < best.backtest.rmse)
+      ? item : best
+  ));
+  const comparisons = candidates.map((item) => ({
+    model: item.model,
+    modelVersion: item.modelVersion,
+    mae: item.backtest.mae,
+    rmse: item.backtest.rmse,
+    selected: item.model === winner.model && item.modelVersion === winner.modelVersion,
+    durationMs: item.durationMs,
+  }));
+  return {
+    ...winner,
+    modelSelection: `${winner.model.replaceAll("_", " ")} was automatically selected because it achieved the lowest holdout MAE (${winner.backtest.mae.toFixed(4)}) across ${comparisons.length} live models.`,
+    comparisons,
+    comparisonServiceVersion: pythonResult.serviceVersion,
+  };
+}
