@@ -6,7 +6,7 @@ const { default: app } = await import("../src/app.js");
 const { effectivePermissions } = await import("../src/services/permissions.js");
 
 const expectedModels = [
-  "Business", "User", "Invitation", "AuditLog", "Store", "Product", "Sale", "Inventory", "ImportBatch", "Forecast", "ForecastRun", "Recommendation", "Report",
+  "Business", "User", "Invitation", "AuditLog", "Notification", "PushDevice", "Store", "Product", "Sale", "Inventory", "ImportBatch", "Forecast", "ForecastRun", "Recommendation", "Report",
 ];
 const missingModels = expectedModels.filter((name) => !mongoose.models[name]);
 
@@ -43,6 +43,9 @@ try {
   const protectedAdmin = await fetch(`${baseUrl}/api/admin/users`);
   if (protectedAdmin.status !== 401) throw new Error("Admin route protection check failed.");
 
+  const protectedNotifications = await fetch(`${baseUrl}/api/notifications`);
+  if (protectedNotifications.status !== 401) throw new Error("Notification route protection check failed.");
+
   const invalidMobileLogin = await fetch(`${baseUrl}/api/auth/mobile/login`, {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({}),
   });
@@ -65,4 +68,4 @@ console.log("StockGuard MERN backend check PASSED");
 console.log(`Mongoose models: ${expectedModels.join(", ")}`);
 console.log("Health endpoint: GET /api/health");
 console.log("Authentication endpoints: web and mobile login/refresh/logout, register, me");
-console.log("Authentication, settings and admin route protection: PASSED");
+console.log("Authentication, settings, notifications and admin route protection: PASSED");

@@ -13,8 +13,15 @@ For another API, set `EXPO_PUBLIC_API_URL` before starting Expo. This value is p
 
 Mobile refresh tokens are stored with Expo SecureStore. The access token is held in memory; `/api/auth/mobile/login`, `/api/auth/mobile/refresh`, and `/api/auth/mobile/logout` handle the native session without changing the website's cookie-based session. Signing out revokes the account's current tokens, including web sessions.
 
+The Notifications screen contains the live MongoDB inbox, unread state, user
+preferences, and an **Enable push on this device** action. The app is linked to
+the `@ahsanqasim2003/stockguard-ai` EAS project and registers Expo push tokens
+with the StockGuard API. Remote push requires an EAS development or store build;
+current Expo Go versions only support the in-app notification experience. Android
+builds also need FCM V1 credentials and iOS builds need Apple push credentials.
+
 CSV uploads follow the **current backend** limit of 2 MB and 10,000 rows per file. Required columns are `date,sku,product_name,category,quantity_sold,revenue`; `store_id` is optional. Each business forecast measures Linear Regression, ARIMA, Random Forest and the available XGBoost/seasonal candidate on the same holdout. The API automatically saves the forecast with the lowest MAE (using RMSE as the tie-breaker).
 
 ## Checks
 
-Run `npm run check` for TypeScript and `npx expo export --platform android` to verify the Android bundle. iOS needs a device or Mac build for runtime verification. Store builds and push notifications are later milestones.
+Run `npm run check` for TypeScript and `npx expo export --platform android` to verify the Android bundle. iOS needs a device or Mac build for native runtime verification.

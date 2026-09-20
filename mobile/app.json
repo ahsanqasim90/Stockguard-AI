@@ -22,7 +22,21 @@
       "favicon": "./assets/stockguard-logo.png"
     },
     "plugins": [
-      "expo-secure-store"
-    ]
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/stockguard-logo.png",
+          "color": "#1fd4c0",
+          "defaultChannel": "stockguard-alerts"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "5600bbdb-9412-4e22-9a77-663983c2e2d7"
+      }
+    },
+    "owner": "ahsanqasim2003"
   }
 }

@@ -10,6 +10,7 @@ import { Sale } from "../models/Sale.js";
 import { Store } from "../models/Store.js";
 import { csvError, parseSalesCsv } from "../services/salesCsv.js";
 import { writeAudit } from "../services/auditService.js";
+import { publishNotification } from "../services/notificationService.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -60,6 +61,10 @@ router.post("/sales", requirePermission("imports.write"), (request, response, ne
     fileName: request.file.originalname.slice(0, 180), records: rows.length, salesUpserted: imported });
   await writeAudit(request, { action: "sales.imported", targetType: "import", targetId: batch._id,
     targetLabel: batch.fileName, metadata: { records: rows.length, salesUpserted: imported } });
+  await publishNotification({ business, recipients: [request.auth.user._id], type: "upload_completed",
+    title: "Sales upload completed", message: `${batch.fileName} imported ${rows.length.toLocaleString()} validated sales rows.`,
+    severity: "success", link: "/dashboard?section=upload", data: { importId: batch._id.toString(), records: rows.length },
+    dedupeKey: `upload:${batch._id}` });
   response.status(201).json({ import: { id: batch._id.toString(), name: batch.fileName,
     records: batch.records, salesUpserted: imported, date: batch.createdAt, status: "Imported" } });
 });

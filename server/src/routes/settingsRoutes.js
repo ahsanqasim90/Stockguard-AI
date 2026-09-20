@@ -9,12 +9,15 @@ const router = Router();
 router.use(requireAuth);
 
 const notificationSchema = z.object({
+  uploadCompleted: z.boolean().optional(),
   lowStock: z.boolean().optional(),
+  criticalInventory: z.boolean().optional(),
   forecastReady: z.boolean().optional(),
   weeklySummary: z.boolean().optional(),
   demandSpike: z.boolean().optional(),
   newLogin: z.boolean().optional(),
   email: z.boolean().optional(),
+  push: z.boolean().optional(),
 }).strict();
 
 const settingsSchema = z.object({
@@ -26,12 +29,15 @@ const settingsSchema = z.object({
 }).strict().refine((value) => Object.keys(value).length > 0, "Provide at least one setting.");
 
 const defaults = {
+  uploadCompleted: true,
   lowStock: true,
+  criticalInventory: true,
   forecastReady: true,
   weeklySummary: false,
   demandSpike: true,
   newLogin: true,
   email: true,
+  push: true,
 };
 
 function parse(body) {

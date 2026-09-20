@@ -3,7 +3,8 @@ import * as SecureStore from 'expo-secure-store';
 const API_URL = (process.env.EXPO_PUBLIC_API_URL || 'https://stockguard-ai-ten.vercel.app/api').replace(/\/+$/, '');
 const REFRESH_KEY = 'stockguard_refresh_token';
 
-export type NotificationSettings = { lowStock: boolean; forecastReady: boolean; weeklySummary: boolean; demandSpike: boolean; newLogin: boolean; email: boolean };
+export type NotificationSettings = { uploadCompleted: boolean; lowStock: boolean; criticalInventory: boolean; forecastReady: boolean; weeklySummary: boolean; demandSpike: boolean; newLogin: boolean; email: boolean; push: boolean };
+export type NotificationRecord = { id: string; type: 'upload_completed' | 'forecast_ready' | 'low_stock' | 'critical_inventory'; title: string; message: string; severity: 'info' | 'success' | 'warning' | 'critical'; link: string; readAt: string | null; createdAt: string; delivery: { email: { status: string; error?: string }; push: { status: string; error?: string } } };
 export type User = {
   id: string; name: string; email: string; role: string; status?: string; lastLoginAt?: string | null; permissions?: string[]; permissionsCustomized?: boolean;
   preferences?: { notifications?: Partial<NotificationSettings>; theme?: 'dark' | 'system' };

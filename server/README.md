@@ -57,6 +57,25 @@ invalidating that user's existing web and mobile sessions.
 - `GET /api/admin/audit` returns the tenant's one-year audit trail.
 - `GET /api/admin/activity` returns user, data, security, MongoDB and ML service activity.
 
+## Notifications API
+
+Upload completion, forecast readiness, low stock, and critical inventory events are
+stored per user in MongoDB. Each user's preferences control event creation and
+email/mobile delivery. Low stock is below the reorder point; critical inventory is
+zero stock or below 60% of the reorder point. Notification records are retained for
+180 days and record email and Expo push delivery status.
+
+- `GET /api/notifications` returns the signed-in user's inbox and unread count.
+- `PATCH /api/notifications/:id/read` marks one alert read.
+- `POST /api/notifications/read-all` marks the inbox read.
+- `POST /api/notifications/devices` registers an Expo push token.
+- `DELETE /api/notifications/devices` disables a device token.
+
+In-app notifications work without another provider. To deliver email, configure
+`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, and `EMAIL_FROM`.
+Mobile push uses Expo Push Service; the mobile app registers its EAS project token.
+`EXPO_ACCESS_TOKEN` is only required when push access security is enabled in Expo.
+
 Permission checks are enforced on product, import, forecast, report, analytics,
 settings, audit and administration routes. Invitation tokens are stored only as
 SHA-256 hashes. The raw token appears once in the generated link for the

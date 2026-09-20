@@ -19,12 +19,15 @@ const userSchema = new mongoose.Schema({
   permissionsCustomized: { type: Boolean, default: false },
   preferences: {
     notifications: {
+      uploadCompleted: { type: Boolean, default: true },
       lowStock: { type: Boolean, default: true },
+      criticalInventory: { type: Boolean, default: true },
       forecastReady: { type: Boolean, default: true },
       weeklySummary: { type: Boolean, default: false },
       demandSpike: { type: Boolean, default: true },
       newLogin: { type: Boolean, default: true },
       email: { type: Boolean, default: true },
+      push: { type: Boolean, default: true },
     },
     theme: { type: String, enum: ["dark", "system"], default: "dark" },
   },

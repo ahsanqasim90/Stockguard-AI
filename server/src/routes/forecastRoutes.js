@@ -11,6 +11,7 @@ import { Store } from "../models/Store.js";
 import { createBusinessForecast, forecastError, selectBestForecast } from "../services/businessForecast.js";
 import { comparePythonModels } from "../services/pythonMlService.js";
 import { writeAudit } from "../services/auditService.js";
+import { publishNotification } from "../services/notificationService.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -116,6 +117,10 @@ router.post("/run", requirePermission("forecasts.run"), async (request, response
   await writeAudit(request, { action: "forecast.completed", targetType: "forecast", targetId: run.runId,
     targetLabel: `${product.name} at ${store.storeId}`, metadata: { model: run.modelName, horizonDays: run.horizonDays,
       mae: run.backtest.mae, rmse: run.backtest.rmse } });
+  await publishNotification({ business, recipients: [request.auth.user._id], type: "forecast_ready",
+    title: "AI forecast ready", message: `${product.name} at ${store.storeId}: ${run.forecastTotal.toFixed(1)} units forecast across ${run.horizonDays} days using ${run.modelName.replaceAll("_", " ")}.`,
+    severity: "success", link: "/dashboard?section=forecast", data: { runId: run.runId, productId: product._id.toString() },
+    dedupeKey: `forecast:${run.runId}` });
   response.status(201).json({ run: await publicRun(run) });
 });
 

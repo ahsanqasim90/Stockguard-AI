@@ -17,8 +17,11 @@ and notification, security, model, and appearance settings.
 Registration and login are connected to the Express authentication API. Create
 the first owner account after setting `MONGODB_URI` in `server/.env`. Passwords
 are bcrypt-hashed, the dashboard verifies a JWT session, and admin navigation is
-limited to owner/admin roles. Product and report persistence will be migrated
-from browser storage in the next backend phase.
+permission-controlled. Products, imports, forecasts, reports, invitations,
+permissions, audit logs, settings, and notification inboxes persist in MongoDB.
+Operational events create upload-completed, forecast-ready, low-stock, and
+critical-inventory alerts for the web and mobile clients, with optional SMTP
+email and Expo push delivery.
 
 StockGuard AI combines a React website, a React Native mobile app, a Node.js/Express
 business API, MongoDB, and a checksum-verified XGBoost inference runtime. Mapped

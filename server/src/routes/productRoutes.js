@@ -7,6 +7,7 @@ import { Product } from "../models/Product.js";
 import { Inventory } from "../models/Inventory.js";
 import { Store } from "../models/Store.js";
 import { writeAudit } from "../services/auditService.js";
+import { notifyInventoryLevel } from "../services/notificationService.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -58,9 +59,10 @@ router.post("/", write, async (request, response) => {
   const store = await defaultStore(business);
   const product = await Product.create({ business, productId: `ITEM-${crypto.randomBytes(6).toString("hex").toUpperCase()}`,
     name: data.name, sku: data.sku, category: data.category, supplier: data.supplier, price: data.price });
-  await Inventory.findOneAndUpdate({ business, store: store._id, product: product._id },
-    { $set: { quantityOnHand: data.stock, reorderPoint: data.reorder } }, { upsert: true });
+  const inventory = await Inventory.findOneAndUpdate({ business, store: store._id, product: product._id },
+    { $set: { quantityOnHand: data.stock, reorderPoint: data.reorder } }, { upsert: true, returnDocument: "after" });
   await writeAudit(request, { action: "product.created", targetType: "product", targetId: product._id, targetLabel: product.name });
+  await notifyInventoryLevel({ business, product, inventory, storeLabel: store.name });
   response.status(201).json({ product: await view(product, store) });
 });
 
@@ -81,6 +83,10 @@ router.patch("/:id", write, async (request, response) => {
     { business, store: store._id, product: product._id }, { $set: inventoryUpdate }, { upsert: true });
   await writeAudit(request, { action: "product.updated", targetType: "product", targetId: product._id, targetLabel: product.name,
     metadata: { fields: Object.keys(data) } });
+  if (Object.keys(inventoryUpdate).length) {
+    const inventory = await Inventory.findOne({ business, store: store._id, product: product._id });
+    await notifyInventoryLevel({ business, product, inventory, storeLabel: store.name });
+  }
   response.json({ product: await view(product, store) });
 });
 
