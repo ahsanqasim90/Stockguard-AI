@@ -7,6 +7,7 @@ const MODEL_NAMES = new Set(["linear_regression", "arima", "random_forest"]);
 
 function endpoint() {
   if (process.env.ML_API_URL) return process.env.ML_API_URL.replace(/\/+$/, "");
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}/ml`;
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}/ml`;
   return env.mlApiUrl.replace(/\/+$/, "");
 }
