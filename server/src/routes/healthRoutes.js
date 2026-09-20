@@ -16,8 +16,9 @@ router.get("/", async (_request, response) => {
     timestamp: new Date().toISOString(),
     mongodb: databaseStatus(),
     businessForecast: {
-      defaultModel: "global_xgboost",
-      fallbackModel: "seasonal_naive",
+      selection: "lowest_holdout_mae",
+      tieBreaker: "rmse",
+      candidates: ["linear_regression", "arima", "random_forest", "global_xgboost_or_seasonal_naive"],
       available: true,
     },
     productionModel: productionModelStatus(),
