@@ -6,7 +6,10 @@ import { z } from "zod";
 
 import { requireAuth } from "../middleware/auth.js";
 import { Business } from "../models/Business.js";
+import { AuditLog } from "../models/AuditLog.js";
+import { Invitation } from "../models/Invitation.js";
 import { User } from "../models/User.js";
+import { effectivePermissions, userCan } from "../services/permissions.js";
 import {
   clearRefreshCookie,
   createAccessToken,
@@ -28,6 +31,7 @@ const registerSchema = z.object({
   businessName: z.string().trim().min(2).max(120),
 });
 const loginSchema = z.object({ email, password: z.string().min(1).max(128) });
+const acceptInvitationSchema = z.object({ password });
 const profileSchema = z.object({
   name: z.string().trim().min(2).max(100).optional(),
   businessName: z.string().trim().min(2).max(120).optional(),
@@ -59,6 +63,8 @@ function publicUser(user) {
     status: user.status,
     lastLoginAt: user.lastLoginAt,
     preferences: user.preferences || {},
+    permissions: effectivePermissions(user),
+    permissionsCustomized: Boolean(user.permissionsCustomized),
     business: business ? {
       id: business._id.toString(),
       name: business.name,
@@ -117,6 +123,15 @@ async function authenticateCredentials(body) {
 function makeSlug(name) {
   const base = name.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 70) || "business";
   return `${base}-${crypto.randomBytes(3).toString("hex")}`;
+}
+
+function invitationHash(token) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+function invitationView(invitation) {
+  return { email: invitation.email, name: invitation.name, role: invitation.role,
+    businessName: invitation.business?.name || "StockGuard workspace", expiresAt: invitation.expiresAt };
 }
 
 router.post("/register", async (request, response, next) => {
@@ -192,6 +207,58 @@ router.post("/mobile/logout", async (request, response) => {
   response.status(204).end();
 });
 
+router.get("/invitations/:token", async (request, response) => {
+  const invitation = await Invitation.findOne({ tokenHash: invitationHash(request.params.token), status: "pending" }).select("+tokenHash").populate("business");
+  if (!invitation) {
+    const error = new Error("This invitation is invalid or has already been used.");
+    error.statusCode = 404;
+    throw error;
+  }
+  if (invitation.expiresAt <= new Date()) {
+    invitation.status = "expired";
+    await invitation.save();
+    const error = new Error("This invitation has expired. Ask an administrator for a new link.");
+    error.statusCode = 410;
+    throw error;
+  }
+  response.json({ invitation: invitationView(invitation) });
+});
+
+router.post("/invitations/:token/accept", async (request, response) => {
+  const data = parse(acceptInvitationSchema, request.body);
+  const invitation = await Invitation.findOne({ tokenHash: invitationHash(request.params.token), status: "pending" }).select("+tokenHash").populate("business");
+  if (!invitation) {
+    const error = new Error("This invitation is invalid or has already been used.");
+    error.statusCode = 404;
+    throw error;
+  }
+  if (invitation.expiresAt <= new Date()) {
+    invitation.status = "expired";
+    await invitation.save();
+    const error = new Error("This invitation has expired. Ask an administrator for a new link.");
+    error.statusCode = 410;
+    throw error;
+  }
+  const user = await User.findOne({ _id: invitation.user, business: invitation.business._id, status: "invited" }).select("+tokenVersion");
+  if (!user) {
+    const error = new Error("The invited account is no longer available.");
+    error.statusCode = 404;
+    throw error;
+  }
+  user.passwordHash = await bcrypt.hash(data.password, 12);
+  user.status = "active";
+  user.lastLoginAt = new Date();
+  invitation.status = "accepted";
+  invitation.acceptedAt = new Date();
+  await Promise.all([user.save(), invitation.save()]);
+  await AuditLog.create({ business: invitation.business._id, actor: user._id, actorName: user.name,
+    action: "invitation.accepted", targetType: "user", targetId: user._id.toString(),
+    targetLabel: user.email, severity: "security", ipAddress: String(request.ip || "").slice(0, 100),
+    userAgent: String(request.get("user-agent") || "").slice(0, 300) });
+  user.business = invitation.business;
+  return issueSession(response, user);
+});
+
 router.post("/refresh", async (request, response, next) => {
   try {
     const token = readCookie(request, refreshCookieName);
@@ -213,7 +280,7 @@ router.patch("/me", requireAuth, async (request, response) => {
   if (data.name) user.name = data.name;
   const businessFields = ["businessName", "timezone", "currency"].filter((field) => data[field] !== undefined);
   if (businessFields.length) {
-    if (!["owner", "admin"].includes(user.role)) {
+    if (!userCan(user, "settings.manage")) {
       const error = new Error("Only owners and administrators can change business details.");
       error.statusCode = 403;
       throw error;

@@ -37,6 +37,30 @@ HTTP-only cookie.
 - `POST /api/auth/refresh` renews an authenticated session.
 - `GET /api/auth/me` returns the current user and requires a bearer token.
 - `POST /api/auth/logout` invalidates the refresh session.
+- `GET /api/auth/invitations/:token` validates a pending team invitation.
+- `POST /api/auth/invitations/:token/accept` sets the invited user's password and activates the account.
+
+## Administration API
+
+The Admin dashboard is backed by MongoDB rather than browser seed data. Owners and
+authorized administrators can create seven-day invitation links, renew or revoke
+pending invitations, edit names and roles, assign custom permissions, and suspend
+or reactivate accounts. Suspension increments the token version, immediately
+invalidating that user's existing web and mobile sessions.
+
+- `GET /api/admin/users` lists workspace users and upload counts.
+- `POST /api/admin/invitations` creates a pending user and single-use invitation.
+- `POST /api/admin/invitations/:userId/resend` rotates an invitation link.
+- `DELETE /api/admin/invitations/:userId` revokes a pending invitation.
+- `PATCH /api/admin/users/:id` edits role, status, name, or permission overrides.
+- `GET /api/admin/roles` returns the enforceable role/permission matrix.
+- `GET /api/admin/audit` returns the tenant's one-year audit trail.
+- `GET /api/admin/activity` returns user, data, security, MongoDB and ML service activity.
+
+Permission checks are enforced on product, import, forecast, report, analytics,
+settings, audit and administration routes. Invitation tokens are stored only as
+SHA-256 hashes. The raw token appears once in the generated link for the
+administrator to share through an approved channel.
 
 After the database is connected, open <http://127.0.0.1:5173/login>, choose
 **Create account**, and register the first owner. Google/Microsoft sign-in is

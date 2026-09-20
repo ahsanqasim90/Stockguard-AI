@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import LandingPage from "./LandingPage";
 import AdminPanel from "./AdminPanel";
 import LoginPage from "./LoginPage";
+import InvitePage from "./InvitePage";
 import { loadCurrentUser } from "./auth";
 
 function ProtectedDashboard() {
@@ -14,6 +15,7 @@ function ProtectedDashboard() {
 }
 
 export default function App() {
+  if (window.location.pathname.startsWith("/invite/")) return <InvitePage />;
   if (window.location.pathname.startsWith("/login")) return <LoginPage />;
   if (window.location.pathname.startsWith("/dashboard")) return <ProtectedDashboard />;
   return <LandingPage />;

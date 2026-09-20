@@ -2,14 +2,15 @@ import crypto from "node:crypto";
 import mongoose from "mongoose";
 import { Router } from "express";
 import { z } from "zod";
-import { requireAuth, allowRoles } from "../middleware/auth.js";
+import { requireAuth, requirePermission } from "../middleware/auth.js";
 import { Product } from "../models/Product.js";
 import { Inventory } from "../models/Inventory.js";
 import { Store } from "../models/Store.js";
+import { writeAudit } from "../services/auditService.js";
 
 const router = Router();
 router.use(requireAuth);
-const write = allowRoles("owner", "admin", "analyst");
+const write = requirePermission("products.write");
 const schema = z.object({
   name: z.string().trim().min(1).max(160),
   sku: z.string().trim().min(1).max(80).transform((s) => s.toUpperCase()),
@@ -38,7 +39,7 @@ async function view(product, store) {
     stock: inventory?.quantityOnHand || 0, reorder: inventory?.reorderPoint || 0, status: product.status };
 }
 
-router.get("/", async (request, response) => {
+router.get("/", requirePermission("products.read"), async (request, response) => {
   const business = businessId(request);
   const store = await defaultStore(business);
   const products = await Product.find({ business, status: { $ne: "discontinued" } }).sort({ name: 1 }).limit(500).lean();
@@ -59,6 +60,7 @@ router.post("/", write, async (request, response) => {
     name: data.name, sku: data.sku, category: data.category, supplier: data.supplier, price: data.price });
   await Inventory.findOneAndUpdate({ business, store: store._id, product: product._id },
     { $set: { quantityOnHand: data.stock, reorderPoint: data.reorder } }, { upsert: true });
+  await writeAudit(request, { action: "product.created", targetType: "product", targetId: product._id, targetLabel: product.name });
   response.status(201).json({ product: await view(product, store) });
 });
 
@@ -77,6 +79,8 @@ router.patch("/:id", write, async (request, response) => {
   if ("reorder" in data) inventoryUpdate.reorderPoint = data.reorder;
   if (Object.keys(inventoryUpdate).length) await Inventory.findOneAndUpdate(
     { business, store: store._id, product: product._id }, { $set: inventoryUpdate }, { upsert: true });
+  await writeAudit(request, { action: "product.updated", targetType: "product", targetId: product._id, targetLabel: product.name,
+    metadata: { fields: Object.keys(data) } });
   response.json({ product: await view(product, store) });
 });
 
@@ -85,6 +89,8 @@ router.delete("/:id", write, async (request, response) => {
   const product = await Product.findOneAndUpdate({ _id: request.params.id, business: businessId(request), status: { $ne: "discontinued" } },
     { $set: { status: "discontinued" } });
   if (!product) throw missing();
+  await writeAudit(request, { action: "product.deleted", targetType: "product", targetId: product._id,
+    targetLabel: product.name, severity: "warning" });
   response.status(204).end();
 });
 

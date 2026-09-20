@@ -3,14 +3,19 @@ process.env.NODE_ENV = "test";
 const { default: mongoose } = await import("mongoose");
 await import("../src/models/index.js");
 const { default: app } = await import("../src/app.js");
+const { effectivePermissions } = await import("../src/services/permissions.js");
 
 const expectedModels = [
-  "Business", "User", "Store", "Product", "Sale", "Inventory", "ImportBatch", "Forecast", "ForecastRun", "Recommendation", "Report",
+  "Business", "User", "Invitation", "AuditLog", "Store", "Product", "Sale", "Inventory", "ImportBatch", "Forecast", "ForecastRun", "Recommendation", "Report",
 ];
 const missingModels = expectedModels.filter((name) => !mongoose.models[name]);
 
 if (missingModels.length) throw new Error(`Missing Mongoose models: ${missingModels.join(", ")}`);
 if (typeof app.listen !== "function") throw new Error("Express application failed to initialize.");
+if (effectivePermissions({ role: "staff", permissionsCustomized: false }).includes("users.manage"))
+  throw new Error("Staff role permission boundary failed.");
+if (!effectivePermissions({ role: "manager", permissionsCustomized: true, permissions: ["users.manage"] }).includes("users.manage"))
+  throw new Error("Custom permission override failed.");
 
 const server = app.listen(0);
 const address = server.address();

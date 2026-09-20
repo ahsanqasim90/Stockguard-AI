@@ -1,6 +1,6 @@
 # StockGuard AI mobile
 
-This is the React Native/Expo mobile client for the same StockGuard business API and MongoDB data used by the web dashboard. It has email/password sign-in, a 30-day dashboard, product search and creation, sales CSV upload/history, product demand forecasts, and account sign-out.
+This is the React Native/Expo mobile client for the same StockGuard business API and MongoDB data used by the web dashboard. It includes sign-in, dashboard, product create/edit/delete, CSV upload/history, live model comparison, reports, insights, profile and notification settings, plus invitation, permission, audit-log and system-health administration for authorized users.
 
 ## Run on a phone
 

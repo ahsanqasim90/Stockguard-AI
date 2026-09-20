@@ -1,11 +1,12 @@
 import mongoose from "mongoose";
 import { Router } from "express";
 import { z } from "zod";
-import { allowRoles, requireAuth } from "../middleware/auth.js";
+import { requireAuth, requirePermission } from "../middleware/auth.js";
 import { Forecast } from "../models/Forecast.js";
 import { ForecastRun } from "../models/ForecastRun.js";
 import { Report } from "../models/Report.js";
 import { getBusinessAnalytics } from "../services/businessAnalytics.js";
+import { writeAudit } from "../services/auditService.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -21,13 +22,13 @@ const metadata = (report) => ({ id: report._id.toString(), name: report.name, ty
   createdAt: report.createdAt });
 const failure = (message, statusCode) => { const error = new Error(message); error.statusCode = statusCode; return error; };
 
-router.get("/", async (request, response) => {
+router.get("/", requirePermission("reports.read"), async (request, response) => {
   const reports = await Report.find({ business: request.auth.business._id }).sort({ createdAt: -1 }).limit(100)
     .select("name type format days filename sizeBytes createdAt").lean();
   response.json({ reports: reports.map(metadata) });
 });
 
-router.post("/", allowRoles("owner", "admin", "analyst"), async (request, response) => {
+router.post("/", requirePermission("reports.create"), async (request, response) => {
   const parsed = input.safeParse(request.body);
   if (!parsed.success) throw failure("Choose a valid report type and period.", 400);
   const { type, days } = parsed.data;
@@ -59,10 +60,12 @@ router.post("/", allowRoles("owner", "admin", "analyst"), async (request, respon
   const report = await Report.create({ business, createdBy: request.auth.user._id, type, format,
     days: periodDays, name: `${type[0].toUpperCase()}${type.slice(1)} report`, filename,
     mimeType: format === "json" ? "application/json" : "text/csv", content, sizeBytes });
+  await writeAudit(request, { action: "report.generated", targetType: "report", targetId: report._id,
+    targetLabel: report.name, metadata: { type, format, days: periodDays } });
   response.status(201).json({ report: metadata(report), content, mimeType: report.mimeType });
 });
 
-router.get("/:id", async (request, response) => {
+router.get("/:id", requirePermission("reports.read"), async (request, response) => {
   if (!mongoose.isValidObjectId(request.params.id)) throw failure("Invalid report ID.", 400);
   const report = await Report.findOne({ _id: request.params.id, business: request.auth.business._id }).lean();
   if (!report) throw failure("Report not found.", 404);

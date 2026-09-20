@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import mongoose from "mongoose";
 import { Router } from "express";
 import { z } from "zod";
-import { requireAuth, allowRoles } from "../middleware/auth.js";
+import { requireAuth, requirePermission } from "../middleware/auth.js";
 import { Forecast } from "../models/Forecast.js";
 import { ForecastRun } from "../models/ForecastRun.js";
 import { Product } from "../models/Product.js";
@@ -10,6 +10,7 @@ import { Sale } from "../models/Sale.js";
 import { Store } from "../models/Store.js";
 import { createBusinessForecast, forecastError, selectBestForecast } from "../services/businessForecast.js";
 import { comparePythonModels } from "../services/pythonMlService.js";
+import { writeAudit } from "../services/auditService.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -44,7 +45,7 @@ async function publicRun(run) {
   };
 }
 
-router.get("/series", async (request, response) => {
+router.get("/series", requirePermission("forecasts.read"), async (request, response) => {
   const business = businessId(request);
   const groups = await Sale.aggregate([
     { $match: { business } },
@@ -66,12 +67,12 @@ router.get("/series", async (request, response) => {
   }) });
 });
 
-router.get("/latest", async (request, response) => {
+router.get("/latest", requirePermission("forecasts.read"), async (request, response) => {
   const run = await ForecastRun.findOne({ business: businessId(request) }).sort({ createdAt: -1 }).lean();
   response.json({ run: await publicRun(run) });
 });
 
-router.post("/run", allowRoles("owner", "admin", "analyst"), async (request, response) => {
+router.post("/run", requirePermission("forecasts.run"), async (request, response) => {
   const parsed = input.safeParse(request.body);
   if (!parsed.success || !mongoose.isValidObjectId(request.body?.storeId) || !mongoose.isValidObjectId(request.body?.productId))
     throw forecastError("Choose a valid store, product and 7, 14 or 28-day horizon.", 400);
@@ -112,6 +113,9 @@ router.post("/run", allowRoles("owner", "admin", "analyst"), async (request, res
     backtest: { ...calculated.backtest, cutoff: new Date(`${calculated.backtest.cutoff}T00:00:00.000Z`) },
     history: calculated.history.map((point) => ({ date: new Date(`${point.date}T00:00:00.000Z`), quantity: point.quantity })),
   });
+  await writeAudit(request, { action: "forecast.completed", targetType: "forecast", targetId: run.runId,
+    targetLabel: `${product.name} at ${store.storeId}`, metadata: { model: run.modelName, horizonDays: run.horizonDays,
+      mae: run.backtest.mae, rmse: run.backtest.rmse } });
   response.status(201).json({ run: await publicRun(run) });
 });
 

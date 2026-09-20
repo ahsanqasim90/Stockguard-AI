@@ -5,7 +5,7 @@ const REFRESH_KEY = 'stockguard_refresh_token';
 
 export type NotificationSettings = { lowStock: boolean; forecastReady: boolean; weeklySummary: boolean; demandSpike: boolean; newLogin: boolean; email: boolean };
 export type User = {
-  id: string; name: string; email: string; role: string; status?: string; lastLoginAt?: string | null;
+  id: string; name: string; email: string; role: string; status?: string; lastLoginAt?: string | null; permissions?: string[]; permissionsCustomized?: boolean;
   preferences?: { notifications?: Partial<NotificationSettings>; theme?: 'dark' | 'system' };
   business: { id?: string; name: string; timezone?: string; currency: string } | null;
 };
@@ -23,7 +23,9 @@ export type Overview = {
 };
 export type ImportRecord = { id: string; name: string; records: number; date: string; status: string };
 export type ReportRecord = { id: string; name: string; type: 'sales' | 'inventory' | 'forecast'; format: string; days?: number; filename: string; sizeBytes: number; createdAt: string };
-export type AdminUser = { id: string; name: string; email: string; role: string; status: string; lastLoginAt: string | null; createdAt: string };
+export type AdminUser = { id: string; name: string; email: string; role: string; status: string; lastLoginAt: string | null; createdAt: string; uploads: number; permissions: string[]; permissionsCustomized: boolean };
+export type AuditEntry = { id: string; action: string; actorName: string; targetType: string; targetLabel: string; severity: string; createdAt: string };
+export type SystemActivity = { generatedAt: string; users: { total: number; active: number; invited: number; suspended: number }; data: { products: number; sales: number; imports: number; importsToday: number; forecasts: number; forecastsToday: number; reports: number }; securityEvents: number; services: { mongodb: { state: string }; productionModel: { available: boolean; model?: string; version?: string }; pythonMl: { state: string; models?: string[] } }; recent: AuditEntry[] };
 export type SettingsData = {
   notifications: NotificationSettings;
   theme: 'dark' | 'system';

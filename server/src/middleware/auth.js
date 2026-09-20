@@ -1,5 +1,6 @@
 import { User } from "../models/User.js";
 import { verifyAccessToken } from "../services/tokenService.js";
+import { userCan } from "../services/permissions.js";
 
 function unauthorized(message = "Authentication is required.") {
   const error = new Error(message);
@@ -29,6 +30,17 @@ export async function requireAuth(request, _response, next) {
 export function allowRoles(...roles) {
   return (request, _response, next) => {
     if (!request.auth?.user || !roles.includes(request.auth.user.role)) {
+      const error = new Error("You do not have permission to perform this action.");
+      error.statusCode = 403;
+      return next(error);
+    }
+    return next();
+  };
+}
+
+export function requirePermission(permission) {
+  return (request, _response, next) => {
+    if (!request.auth?.user || !userCan(request.auth.user, permission)) {
       const error = new Error("You do not have permission to perform this action.");
       error.statusCode = 403;
       return next(error);

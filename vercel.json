@@ -18,6 +18,7 @@
     { "source": "/api", "destination": "/api/index" },
     { "source": "/api/:path*", "destination": "/api/index" },
     { "source": "/login", "destination": "/index.html" },
+    { "source": "/invite/:path*", "destination": "/index.html" },
     { "source": "/dashboard", "destination": "/index.html" },
     { "source": "/dashboard/:path*", "destination": "/index.html" }
   ]

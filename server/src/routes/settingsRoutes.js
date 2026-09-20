@@ -2,6 +2,8 @@ import { Router } from "express";
 import { z } from "zod";
 
 import { requireAuth } from "../middleware/auth.js";
+import { writeAudit } from "../services/auditService.js";
+import { userCan } from "../services/permissions.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -70,7 +72,7 @@ router.patch("/", async (request, response) => {
   const businessKeys = ["safetyStockPercent", "defaultLeadTimeDays", "forecastHorizonDays"];
   const requestedBusinessKeys = businessKeys.filter((key) => data[key] !== undefined);
   if (requestedBusinessKeys.length) {
-    if (!["owner", "admin"].includes(user.role)) {
+    if (!userCan(user, "settings.manage")) {
       const error = new Error("Only owners and administrators can change business settings.");
       error.statusCode = 403;
       throw error;
@@ -80,6 +82,8 @@ router.patch("/", async (request, response) => {
   }
 
   await user.save();
+  await writeAudit(request, { action: "settings.updated", targetType: "settings", targetId: user._id,
+    targetLabel: user.email, metadata: { fields: Object.keys(data) } });
   response.json({ settings: output(user, business) });
 });
 

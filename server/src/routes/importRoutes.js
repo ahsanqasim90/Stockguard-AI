@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { Router } from "express";
 import multer from "multer";
-import { requireAuth, allowRoles } from "../middleware/auth.js";
+import { requireAuth, requirePermission } from "../middleware/auth.js";
 import { ImportBatch } from "../models/ImportBatch.js";
 import { Forecast } from "../models/Forecast.js";
 import { ForecastRun } from "../models/ForecastRun.js";
@@ -9,6 +9,7 @@ import { Product } from "../models/Product.js";
 import { Sale } from "../models/Sale.js";
 import { Store } from "../models/Store.js";
 import { csvError, parseSalesCsv } from "../services/salesCsv.js";
+import { writeAudit } from "../services/auditService.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -18,13 +19,13 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 *
     callback(null, true);
   } });
 
-router.get("/", async (request, response) => {
+router.get("/", requirePermission("imports.read"), async (request, response) => {
   const imports = await ImportBatch.find({ business: request.auth.business._id }).sort({ createdAt: -1 }).limit(30).lean();
   response.json({ imports: imports.map((item) => ({ id: item._id.toString(), name: item.fileName,
     records: item.records, date: item.createdAt, status: "Imported" })) });
 });
 
-router.post("/sales", allowRoles("owner", "admin", "analyst"), (request, response, next) => {
+router.post("/sales", requirePermission("imports.write"), (request, response, next) => {
   upload.single("file")(request, response, (error) => {
     if (error?.code === "LIMIT_FILE_SIZE") return next(csvError("CSV file must be 2 MB or smaller."));
     if (error) return next(error);
@@ -57,6 +58,8 @@ router.post("/sales", allowRoles("owner", "admin", "analyst"), (request, respons
   await Promise.all([Forecast.deleteMany({ business }), ForecastRun.deleteMany({ business })]);
   const batch = await ImportBatch.create({ business, uploadedBy: request.auth.user._id,
     fileName: request.file.originalname.slice(0, 180), records: rows.length, salesUpserted: imported });
+  await writeAudit(request, { action: "sales.imported", targetType: "import", targetId: batch._id,
+    targetLabel: batch.fileName, metadata: { records: rows.length, salesUpserted: imported } });
   response.status(201).json({ import: { id: batch._id.toString(), name: batch.fileName,
     records: batch.records, salesUpserted: imported, date: batch.createdAt, status: "Imported" } });
 });

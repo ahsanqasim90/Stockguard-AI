@@ -12,9 +12,11 @@ const userSchema = new mongoose.Schema({
     default: "owner",
     index: true,
   },
-  status: { type: String, enum: ["active", "invited", "disabled"], default: "active", index: true },
+  status: { type: String, enum: ["active", "invited", "suspended", "disabled"], default: "active", index: true },
   tokenVersion: { type: Number, default: 0, select: false },
   lastLoginAt: { type: Date, default: null },
+  permissions: [{ type: String, trim: true }],
+  permissionsCustomized: { type: Boolean, default: false },
   preferences: {
     notifications: {
       lowStock: { type: Boolean, default: true },

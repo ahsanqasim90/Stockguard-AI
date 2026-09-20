@@ -50,6 +50,16 @@ export async function register(account) {
   return saveSession(await apiRequest("/auth/register", { method: "POST", body: JSON.stringify(account) }, false));
 }
 
+export async function loadInvitation(token) {
+  return apiRequest(`/auth/invitations/${encodeURIComponent(token)}`, {}, false);
+}
+
+export async function acceptInvitation(token, password) {
+  return saveSession(await apiRequest(`/auth/invitations/${encodeURIComponent(token)}/accept`, {
+    method: "POST", body: JSON.stringify({ password }),
+  }, false));
+}
+
 export async function loadCurrentUser() {
   const data = await apiRequest("/auth/me");
   saveSession({ ...(getSession() || {}), user: data.user });
