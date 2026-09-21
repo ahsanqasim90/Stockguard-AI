@@ -30,9 +30,12 @@ async function publicRun(run) {
     Store.findOne({ _id: run.store, business: run.business }).lean(),
     Product.findOne({ _id: run.product, business: run.business }).lean(),
     Forecast.find({ business: run.business, runId: run.runId }).sort({ forecastDate: 1 }).lean(),
-    Recommendation.findOne({ business: run.business, runId: run.runId }).lean(),
+    Recommendation.find({ business: run.business, $or: [{ forecastRunId: run.runId }, { runId: run.runId }] })
+      .sort({ risk: -1, createdAt: -1 }).lean(),
   ]);
   if (!store || !product || forecasts.length !== run.horizonDays) return null;
+  const riskWeight = { high: 3, medium: 2, low: 1 };
+  recommendation.sort((a, b) => riskWeight[b.risk] - riskWeight[a.risk]);
   return { id: run.runId, storeId: store._id.toString(), storeCode: store.storeId,
     productId: product._id.toString(), sku: product.sku || product.productId, productName: product.name,
     model: run.modelName, modelVersion: run.modelVersion, modelSelection: run.modelSelection || null,
@@ -48,13 +51,23 @@ async function publicRun(run) {
     inventoryPlan: run.inventoryPlan ? { currentStock: run.inventoryPlan.currentStock || 0,
       reservedStock: run.inventoryPlan.reservedStock || 0, availableStock: run.inventoryPlan.availableStock || 0,
       leadTimeDays: run.inventoryPlan.leadTimeDays || 7, safetyStockPercent: run.inventoryPlan.safetyStockPercent || 0,
-      averageDailyDemand: run.inventoryPlan.averageDailyDemand || 0, leadTimeDemand: run.inventoryPlan.leadTimeDemand || 0,
+      serviceLevelFactor: run.inventoryPlan.serviceLevelFactor || 1.65,
+      historicalAverageDailyDemand: run.inventoryPlan.historicalAverageDailyDemand || 0,
+      demandStdDev: run.inventoryPlan.demandStdDev || 0, averageDailyDemand: run.inventoryPlan.averageDailyDemand || 0,
+      demandChangePercent: run.inventoryPlan.demandChangePercent || 0, demandSpike: Boolean(run.inventoryPlan.demandSpike),
+      leadTimeDemand: run.inventoryPlan.leadTimeDemand || 0,
+      variabilitySafetyStock: run.inventoryPlan.variabilitySafetyStock || 0,
+      policySafetyStock: run.inventoryPlan.policySafetyStock || 0,
       safetyStock: run.inventoryPlan.safetyStock || 0, reorderPoint: run.inventoryPlan.reorderPoint || 0,
       targetStock: run.inventoryPlan.targetStock || 0, recommendedOrderQuantity: run.inventoryPlan.recommendedOrderQuantity || 0,
+      daysOfCover: run.inventoryPlan.daysOfCover ?? null,
       action: run.inventoryPlan.action || "none", risk: run.inventoryPlan.risk || "low" } : null,
-    recommendation: recommendation ? { id: recommendation._id.toString(), type: recommendation.type,
-      risk: recommendation.risk, suggestedQuantity: recommendation.suggestedQuantity,
-      reason: recommendation.reason, status: recommendation.status } : null,
+    recommendations: recommendation.map((item) => ({ id: item._id.toString(), type: item.type,
+      risk: item.risk, suggestedQuantity: item.suggestedQuantity,
+      reason: item.reason, status: item.status })),
+    recommendation: recommendation.length ? { id: recommendation[0]._id.toString(), type: recommendation[0].type,
+      risk: recommendation[0].risk, suggestedQuantity: recommendation[0].suggestedQuantity,
+      reason: recommendation[0].reason, status: recommendation[0].status } : null,
     generatedAt: run.createdAt,
     backtest: { observations: run.backtest.observations, cutoff: dateString(run.backtest.cutoff),
       mae: run.backtest.mae, rmse: run.backtest.rmse },
@@ -137,17 +150,23 @@ router.post("/run", requirePermission("forecasts.run"), async (request, response
     backtest: { ...calculated.backtest, cutoff: new Date(`${calculated.backtest.cutoff}T00:00:00.000Z`) },
     history: calculated.history.map((point) => ({ date: new Date(`${point.date}T00:00:00.000Z`), quantity: point.quantity })),
   });
-  if (decision.inventoryPlan.action !== "none") {
-    await Recommendation.create({ business, runId, store: store._id, product: product._id,
-      type: decision.inventoryPlan.action, risk: decision.inventoryPlan.risk,
-      suggestedQuantity: decision.inventoryPlan.recommendedOrderQuantity,
-      currentStock: decision.inventoryPlan.currentStock, reorderPoint: decision.inventoryPlan.reorderPoint,
-      targetStock: decision.inventoryPlan.targetStock, safetyStock: decision.inventoryPlan.safetyStock,
-      estimatedRevenue: decision.revenue.forecastRevenue,
-      reason: recommendationReason(product.name, store.storeId, decision.inventoryPlan, horizon),
+  const savedRecommendations = [];
+  for (const signal of decision.recommendations) {
+    const openKey = `${business}:${store._id}:${product._id}:${signal.type}`;
+    const values = { forecastRunId: runId, runId: `${runId}:${signal.type}`, risk: signal.risk,
+      suggestedQuantity: signal.suggestedQuantity, currentStock: decision.inventoryPlan.currentStock,
+      reorderPoint: decision.inventoryPlan.reorderPoint, targetStock: decision.inventoryPlan.targetStock,
+      safetyStock: decision.inventoryPlan.safetyStock, estimatedRevenue: decision.revenue.forecastRevenue,
+      daysOfCover: decision.inventoryPlan.daysOfCover, demandChangePercent: decision.inventoryPlan.demandChangePercent,
+      reason: recommendationReason(signal.type, product.name, store.storeId, decision.inventoryPlan, horizon),
       forecastStartDate: new Date(`${calculated.forecastStartDate}T00:00:00.000Z`),
-      forecastEndDate: new Date(`${decision.predictions.at(-1).date}T00:00:00.000Z`),
-    });
+      forecastEndDate: new Date(`${decision.predictions.at(-1).date}T00:00:00.000Z`), openKey };
+    const item = await Recommendation.findOneAndUpdate(
+      { business, store: store._id, product: product._id, type: signal.type, status: "open" },
+      { $set: values, $setOnInsert: { business, store: store._id, product: product._id, type: signal.type, status: "open" } },
+      { upsert: true, returnDocument: "after" },
+    );
+    savedRecommendations.push(item);
   }
   await writeAudit(request, { action: "forecast.completed", targetType: "forecast", targetId: run.runId,
     targetLabel: `${product.name} at ${store.storeId}`, metadata: { model: run.modelName, horizonDays: run.horizonDays,
@@ -157,6 +176,12 @@ router.post("/run", requirePermission("forecasts.run"), async (request, response
     title: "AI forecast ready", message: `${product.name} at ${store.storeId}: ${run.forecastTotal.toFixed(1)} units forecast across ${run.horizonDays} days using ${run.modelName.replaceAll("_", " ")}.`,
     severity: "success", link: "/dashboard?section=forecast", data: { runId: run.runId, productId: product._id.toString() },
     dedupeKey: `forecast:${run.runId}` });
+  for (const item of savedRecommendations.filter((value) => value.risk === "high")) {
+    await publishNotification({ business, type: "critical_inventory", title: `High-risk recommendation: ${product.name}`,
+      message: item.reason, severity: "critical", link: "/dashboard?section=insights",
+      data: { recommendationId: item._id.toString(), productId: product._id.toString(), type: item.type },
+      dedupeKey: `recommendation:${item._id}` });
+  }
   response.status(201).json({ run: await publicRun(run) });
 });
 

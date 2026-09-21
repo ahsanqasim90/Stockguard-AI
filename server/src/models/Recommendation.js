@@ -6,7 +6,9 @@ const recommendationSchema = new mongoose.Schema({
   store: { type: objectId, ref: "Store", required: true, index: true },
   product: { type: objectId, ref: "Product", required: true, index: true },
   runId: { type: String, required: true, trim: true, index: true },
-  type: { type: String, enum: ["reorder", "overstock", "demand_spike"], required: true },
+  forecastRunId: { type: String, required: true, trim: true, index: true },
+  openKey: { type: String, trim: true },
+  type: { type: String, enum: ["reorder", "low_stock", "critical_stock", "overstock", "demand_spike"], required: true },
   risk: { type: String, enum: ["low", "medium", "high"], required: true, index: true },
   suggestedQuantity: { type: Number, min: 0, default: 0 },
   currentStock: { type: Number, min: 0, default: 0 },
@@ -14,6 +16,8 @@ const recommendationSchema = new mongoose.Schema({
   targetStock: { type: Number, min: 0, default: 0 },
   safetyStock: { type: Number, min: 0, default: 0 },
   estimatedRevenue: { type: Number, min: 0, default: 0 },
+  daysOfCover: { type: Number, min: 0, default: null },
+  demandChangePercent: { type: Number, default: 0 },
   reason: { type: String, required: true, trim: true, maxlength: 500 },
   status: { type: String, enum: ["open", "approved", "dismissed", "completed"], default: "open", index: true },
   forecastStartDate: { type: Date, required: true },
@@ -24,5 +28,6 @@ const recommendationSchema = new mongoose.Schema({
 
 recommendationSchema.index({ business: 1, status: 1, risk: 1, createdAt: -1 });
 recommendationSchema.index({ business: 1, runId: 1 }, { unique: true });
+recommendationSchema.index({ openKey: 1 }, { unique: true, sparse: true });
 
 export const Recommendation = mongoose.model("Recommendation", recommendationSchema);

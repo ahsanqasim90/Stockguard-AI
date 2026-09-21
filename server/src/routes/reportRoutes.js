@@ -44,6 +44,7 @@ router.post("/", requirePermission("reports.create"), async (request, response) 
     const overview = await getBusinessAnalytics(business, days);
     content = JSON.stringify({ project: "StockGuard AI", businessForecast: overview.latestForecast,
       revenueEstimate: run.revenueEstimate, inventoryPlan: run.inventoryPlan,
+      recommendations: overview.recommendations.filter((item) => item.runId === run.runId),
       backtest: { observations: run.backtest.observations, cutoff: run.backtest.cutoff.toISOString().slice(0, 10), mae: run.backtest.mae, rmse: run.backtest.rmse },
       predictions: predictions.map((point) => ({ date: point.forecastDate.toISOString().slice(0, 10),
         units: point.predictedQuantity, estimatedRevenue: point.predictedRevenue || 0 })) }, null, 2);
@@ -52,8 +53,10 @@ router.post("/", requirePermission("reports.create"), async (request, response) 
   } else {
     const overview = await getBusinessAnalytics(business, days);
     if (type === "sales") content = csv([["date", "revenue", "units", "sale_records"], ...overview.daily.map((row) => [row.date, row.revenue, row.units, row.records])]);
-    else content = csv([["store", "product", "sku", "category", "stock", "reorder_point", "low_stock"],
-      ...overview.inventory.map((row) => [row.store, row.name, row.sku, row.category, row.stock, row.reorderPoint, row.lowStock])]);
+    else content = csv([["store", "product", "sku", "category", "stock", "reorder_point", "low_stock", "recommendation", "risk", "recommended_order_quantity"],
+      ...overview.inventory.map((row) => { const action = overview.recommendations.find((item) => item.status === "open" && item.productId === row.productId && item.store === row.store);
+        return [row.store, row.name, row.sku, row.category, row.stock, row.reorderPoint, row.lowStock,
+          action?.type || "", action?.risk || "", action?.suggestedQuantity || 0]; })]);
   }
   const sizeBytes = Buffer.byteLength(content, "utf8");
   if (sizeBytes > 1024 * 1024) throw failure("This report is over 1 MB; choose a shorter period.", 413);

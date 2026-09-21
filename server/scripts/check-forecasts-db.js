@@ -81,7 +81,8 @@ try {
     throw new Error("Thirty-day forecast revenue estimate is incorrect.");
   if (!thirty.run.inventoryPlan || thirty.run.inventoryPlan.leadTimeDays !== 7
     || thirty.run.inventoryPlan.recommendedOrderQuantity <= 0 || thirty.run.inventoryPlan.action !== "reorder"
-    || thirty.run.recommendation?.type !== "reorder")
+    || thirty.run.inventoryPlan.demandStdDev <= 0 || thirty.run.inventoryPlan.safetyStock <= 0
+    || thirty.run.recommendation?.type !== "critical_stock")
     throw new Error("Stock replenishment recommendation is incomplete.");
   const latest = await expect(await fetch(`${base}/forecasts/latest`, { headers }), 200);
   if (latest.run.id !== thirty.run.id || latest.run.horizon !== 30 || latest.run.predictions.length !== 30)
@@ -90,8 +91,34 @@ try {
     || latest.run.inventoryPlan.recommendedOrderQuantity !== thirty.run.inventoryPlan.recommendedOrderQuantity)
     throw new Error("Saved revenue estimate or inventory plan was not restored.");
   const recommendations = await expect(await fetch(`${base}/recommendations`, { headers }), 200);
-  if (!recommendations.recommendations.some((item) => item.runId === thirty.run.id && item.type === "reorder"))
+  const critical = recommendations.recommendations.find((item) => item.runId === thirty.run.id && item.type === "critical_stock");
+  if (!critical)
     throw new Error("Saved replenishment recommendation was not listed.");
+  const productList = await expect(await fetch(`${base}/products`, { headers }), 200);
+  const plannedProduct = productList.products.find((item) => item.id === selected.productId);
+  if (plannedProduct?.recommendation?.type !== "critical_stock"
+    || plannedProduct.recommendation.suggestedQuantity <= 0) throw new Error("Product replenishment action was not exposed.");
+  const insights = await expect(await fetch(`${base}/analytics/overview?days=30`, { headers }), 200);
+  if (!insights.recommendations.some((item) => item.id === critical.id))
+    throw new Error("Business insights did not include replenishment recommendations.");
+  const alertInbox = await expect(await fetch(`${base}/notifications?limit=50`, { headers }), 200);
+  if (!alertInbox.notifications.some((item) => item.type === "critical_inventory"
+    && item.data?.recommendationId === critical.id)) throw new Error("High-risk recommendation notification was not generated.");
+  const duplicateRun = await expect(await run(30), 201);
+  const deduplicated = await expect(await fetch(`${base}/recommendations`, { headers }), 200);
+  if (deduplicated.recommendations.filter((item) => item.type === "critical_stock" && item.status === "open").length !== 1)
+    throw new Error("Duplicate open recommendations were not prevented.");
+  for (const status of ["approved", "open", "dismissed", "open", "completed"]) {
+    const changed = await expect(await fetch(`${base}/recommendations/${critical.id}`, { method: "PATCH",
+      headers: { ...headers, "content-type": "application/json" }, body: JSON.stringify({ status }) }), 200);
+    if (changed.recommendation.status !== status) throw new Error(`Recommendation status ${status} was not saved.`);
+  }
+  const forecastReport = await expect(await fetch(`${base}/reports`, { method: "POST",
+    headers: { ...headers, "content-type": "application/json" }, body: JSON.stringify({ type: "forecast", days: 30 }) }), 201);
+  const reportContent = JSON.parse(forecastReport.content);
+  if (reportContent.businessForecast.runId !== duplicateRun.run.id
+    || !reportContent.recommendations.some((item) => item.type === "critical_stock"))
+    throw new Error("Forecast report did not include replenishment recommendations.");
   await expect(await fetch(`${base}/imports/sales`, { method: "POST", headers, body: file(50) }), 201);
   const invalidated = await expect(await fetch(`${base}/forecasts/latest`, { headers }), 200);
   if (invalidated.run !== null) throw new Error("CSV re-import did not invalidate stale forecasts.");
@@ -144,8 +171,9 @@ try {
     const filter = { business };
     await Promise.all([models.Forecast.deleteMany(filter), models.ForecastRun.deleteMany(filter), models.Recommendation.deleteMany(filter),
       models.Sale.deleteMany(filter), models.ImportBatch.deleteMany(filter),
-      models.Inventory.deleteMany(filter), models.Product.deleteMany(filter),
-      models.Store.deleteMany(filter), models.User.deleteMany(filter)]);
+      models.Inventory.deleteMany(filter), models.Product.deleteMany(filter), models.Notification.deleteMany(filter),
+      models.AuditLog.deleteMany(filter), models.Report.deleteMany(filter), models.Invitation.deleteMany(filter),
+      models.PushDevice.deleteMany(filter), models.Store.deleteMany(filter), models.User.deleteMany(filter)]);
     await models.Business.deleteOne({ _id: business });
   }
   if (server) await new Promise((resolve) => server.close(resolve));

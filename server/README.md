@@ -144,6 +144,13 @@ target stock and recommended order quantity. `GET /api/recommendations` lists th
 tenant-isolated actions; authorized users can update their workflow status with
 `PATCH /api/recommendations/:id`.
 
+Safety stock uses the larger of the configured policy buffer and a 95%-service-level
+variability buffer (`1.65 × daily demand standard deviation × √lead time`). The engine
+also calculates days of cover and demand change, generates low-stock, critical-stock,
+overstock and demand-spike actions, prevents duplicate open actions for the same
+store/product/type, and sends critical notifications for high-risk recommendations.
+Recommendation workflow statuses are `open`, `approved`, `dismissed` and `completed`.
+
 The model bundle is checksum-verified during API startup. Run `npm run check:model`
 inside `server` to compare the JavaScript scorer against official XGBoost 3.2
 predictions and verify recursive feature engineering.

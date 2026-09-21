@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireAuth, requirePermission } from "../middleware/auth.js";
 import { Product } from "../models/Product.js";
 import { Inventory } from "../models/Inventory.js";
+import { Recommendation } from "../models/Recommendation.js";
 import { Store } from "../models/Store.js";
 import { writeAudit } from "../services/auditService.js";
 import { notifyInventoryLevel } from "../services/notificationService.js";
@@ -34,24 +35,43 @@ function businessId(request) { return request.auth.business._id; }
 async function defaultStore(business) {
   return Store.findOneAndUpdate({ business, storeId: "DEFAULT" }, { $setOnInsert: { business, storeId: "DEFAULT", name: "Main store" } }, { upsert: true, returnDocument: "after" });
 }
+function recommendationView(item) {
+  return item ? { id: item._id.toString(), type: item.type, risk: item.risk,
+    suggestedQuantity: item.suggestedQuantity, reason: item.reason, status: item.status } : null;
+}
 async function view(product, store) {
   const inventory = await Inventory.findOne({ business: product.business, store: store._id, product: product._id }).lean();
+  const recommendation = await Recommendation.findOne({ business: product.business, store: store._id,
+    product: product._id, status: "open" }).sort({ createdAt: -1 }).lean();
   return { id: product._id.toString(), name: product.name, sku: product.sku || product.productId,
     category: product.category || "", supplier: product.supplier || "", price: product.price,
     leadTimeDays: product.supplierLeadTimeDays || 7,
-    stock: inventory?.quantityOnHand || 0, reorder: inventory?.reorderPoint || 0, status: product.status };
+    stock: inventory?.quantityOnHand || 0, reorder: inventory?.reorderPoint || 0, status: product.status,
+    recommendation: recommendationView(recommendation) };
 }
 
 router.get("/", requirePermission("products.read"), async (request, response) => {
   const business = businessId(request);
   const store = await defaultStore(business);
   const products = await Product.find({ business, status: { $ne: "discontinued" } }).sort({ name: 1 }).limit(500).lean();
-  const inventory = await Inventory.find({ business, store: store._id, product: { $in: products.map((p) => p._id) } }).lean();
+  const [inventory, recommendations] = await Promise.all([
+    Inventory.find({ business, store: store._id, product: { $in: products.map((p) => p._id) } }).lean(),
+    Recommendation.find({ business, store: store._id, product: { $in: products.map((p) => p._id) }, status: "open" })
+      .sort({ createdAt: -1 }).lean(),
+  ]);
   const byProduct = new Map(inventory.map((i) => [i.product.toString(), i]));
+  const recommendationByProduct = new Map();
+  const riskWeight = { high: 3, medium: 2, low: 1 };
+  for (const item of recommendations) {
+    const key = item.product.toString();
+    if (!recommendationByProduct.has(key)
+      || riskWeight[item.risk] > riskWeight[recommendationByProduct.get(key).risk]) recommendationByProduct.set(key, item);
+  }
   response.json({ products: products.map((p) => ({ id: p._id.toString(), name: p.name, sku: p.sku || p.productId,
     category: p.category || "", supplier: p.supplier || "", price: p.price, leadTimeDays: p.supplierLeadTimeDays || 7,
     stock: byProduct.get(p._id.toString())?.quantityOnHand || 0,
-    reorder: byProduct.get(p._id.toString())?.reorderPoint || 0, status: p.status })) });
+    reorder: byProduct.get(p._id.toString())?.reorderPoint || 0, status: p.status,
+    recommendation: recommendationView(recommendationByProduct.get(p._id.toString())) })) });
 });
 
 router.post("/", write, async (request, response) => {

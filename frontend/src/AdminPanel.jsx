@@ -72,7 +72,7 @@ function productStatus(product) {
 }
 
 function ProductTable({ products, compact = false, onEdit, onDelete }) {
-  return <div className="sg-table-wrap"><table className="sg-table"><thead><tr><th>Product</th><th>SKU</th><th>Category</th><th>Stock</th>{!compact && <th>Reorder</th>}<th>Price</th><th>Status</th>{!compact && <th>Actions</th>}</tr></thead><tbody>{products.map((product) => { const [status, tone] = productStatus(product); return <tr key={product.id}><td><b>{product.name}</b></td><td>{product.sku}</td><td><span className="sg-chip">{product.category}</span></td><td><b>{number(product.stock)}</b></td>{!compact && <td>{product.reorder}</td>}<td>{money(product.price)}</td><td><Status tone={tone}>{status}</Status></td>{!compact && <td><div className="sg-row-actions"><button onClick={() => onEdit(product)} aria-label="Edit"><Edit3/></button><button onClick={() => onDelete(product.id)} aria-label="Delete"><Trash2/></button></div></td>}</tr>; })}</tbody></table></div>;
+  return <div className="sg-table-wrap"><table className="sg-table"><thead><tr><th>Product</th><th>SKU</th><th>Category</th><th>Stock</th>{!compact && <th>Reorder</th>}<th>Price</th><th>Status</th>{!compact && <th>AI action</th>}{!compact && <th>Actions</th>}</tr></thead><tbody>{products.map((product) => { const [status, tone] = productStatus(product); return <tr key={product.id}><td><b>{product.name}</b></td><td>{product.sku}</td><td><span className="sg-chip">{product.category}</span></td><td><b>{number(product.stock)}</b></td>{!compact && <td>{product.reorder}</td>}<td>{money(product.price)}</td><td><Status tone={tone}>{status}</Status></td>{!compact && <td>{product.recommendation?<><Status tone={product.recommendation.risk==="high"?"red":"amber"}>{product.recommendation.type.replaceAll("_"," ")}</Status><small>{product.recommendation.suggestedQuantity?`Order ${number(product.recommendation.suggestedQuantity)}`:"Review"}</small></>:"—"}</td>}{!compact && <td><div className="sg-row-actions"><button onClick={() => onEdit(product)} aria-label="Edit"><Edit3/></button><button onClick={() => onDelete(product.id)} aria-label="Delete"><Trash2/></button></div></td>}</tr>; })}</tbody></table></div>;
 }
 
 function ProductModal({ product, onClose, onSave }) {
@@ -111,7 +111,7 @@ function ConnectedUploadPage({ uploads, importSales }) {
   </>;
 }
 
-function ConnectedForecastPage({ model, forecast, setForecast, settings, currentUser, refreshNotifications }) {
+function ConnectedForecastPage({ model, forecast, setForecast, setProducts, settings, currentUser, refreshNotifications }) {
   const [series,setSeries]=useState([]); const [selected,setSelected]=useState("");
   const [horizon,setHorizon]=useState(Number(settings.horizon)||30); const [busy,setBusy]=useState(false);
   const [loading,setLoading]=useState(true); const [error,setError]=useState(""); const [message,setMessage]=useState("");
@@ -127,7 +127,7 @@ function ConnectedForecastPage({ model, forecast, setForecast, settings, current
     ...shown.predictions.map((p)=>({date:p.date,predicted:p.forecast_sales}))]:[];
   async function run(){if(!chosen)return;setBusy(true);setError("");setMessage("");try{
     const data=await apiRequest("/forecasts/run",{method:"POST",body:JSON.stringify({storeId:chosen.storeId,productId:chosen.productId,horizon})});
-    setForecast(data.run);setMessage(`Forecast saved for ${data.run.productName} through ${data.run.predictions.at(-1).date}.`);refreshNotifications?.();
+    setForecast(data.run);const productData=await apiRequest("/products");setProducts(productData.products);setMessage(`Forecast saved for ${data.run.productName} through ${data.run.predictions.at(-1).date}.`);refreshNotifications?.();
   }catch(e){setError(e.message);}finally{setBusy(false);}}
   const modelLabels={linear_regression:"Linear Regression",arima:"ARIMA",random_forest:"Random Forest",global_xgboost:"Global XGBoost",seasonal_naive:"Seasonal naive"};
   const modelCopy={linear_regression:"Interpretable lag, trend and calendar regression.",arima:"Time-series trend and autoregressive demand model.",random_forest:"Non-linear ensemble trained on lag and calendar features.",global_xgboost:"Checksum-verified production tree model for mapped IDs.",seasonal_naive:"Same-weekday baseline for custom or short series."};

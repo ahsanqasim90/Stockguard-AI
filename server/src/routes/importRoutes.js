@@ -57,7 +57,8 @@ router.post("/sales", requirePermission("imports.write"), (request, response, ne
     upsert: true,
   } })), { ordered: false });
   const imported = result.upsertedCount + result.modifiedCount;
-  await Promise.all([Forecast.deleteMany({ business }), ForecastRun.deleteMany({ business }), Recommendation.deleteMany({ business })]);
+  await Promise.all([Forecast.deleteMany({ business }), ForecastRun.deleteMany({ business }),
+    Recommendation.deleteMany({ business, status: "open" })]);
   const batch = await ImportBatch.create({ business, uploadedBy: request.auth.user._id,
     fileName: request.file.originalname.slice(0, 180), records: rows.length, salesUpserted: imported });
   await writeAudit(request, { action: "sales.imported", targetType: "import", targetId: batch._id,

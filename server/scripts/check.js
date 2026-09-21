@@ -39,8 +39,28 @@ const decisionSupport = buildDecisionSupport({
 if (decisionSupport.revenue.unitRevenue !== 50 || decisionSupport.revenue.forecastRevenue !== 15000
   || decisionSupport.predictions.length !== 30 || decisionSupport.predictions.some((point) => point.forecast_revenue !== 500)
   || decisionSupport.inventoryPlan.reorderPoint !== 84 || decisionSupport.inventoryPlan.targetStock !== 314
-  || decisionSupport.inventoryPlan.recommendedOrderQuantity !== 294 || decisionSupport.inventoryPlan.action !== "reorder") {
+  || decisionSupport.inventoryPlan.recommendedOrderQuantity !== 294 || decisionSupport.inventoryPlan.action !== "reorder"
+  || decisionSupport.recommendations[0]?.type !== "critical_stock") {
   throw new Error("Revenue estimation or stock replenishment calculation failed.");
+}
+const lowStock = buildDecisionSupport({
+  predictions: Array.from({ length: 30 }, (_, index) => ({ date: `2026-05-${String(index + 1).padStart(2, "0")}`, forecast_sales: 10 })),
+  sales: [{ quantity: 10 }], product: { price: 10, supplierLeadTimeDays: 7 },
+  inventory: { quantityOnHand: 50, quantityReserved: 0 }, businessSettings: { safetyStockPercent: 20 },
+});
+if (lowStock.recommendations[0]?.type !== "low_stock" || lowStock.recommendations[0]?.risk !== "medium")
+  throw new Error("Low-stock recommendation classification failed.");
+const variableDemand = buildDecisionSupport({
+  predictions: Array.from({ length: 30 }, (_, index) => ({ date: `2026-04-${String(index + 1).padStart(2, "0")}`, forecast_sales: 20 })),
+  sales: [{ quantity: 0 }, { quantity: 10 }, { quantity: 20 }], product: { price: 10, supplierLeadTimeDays: 7 },
+  inventory: { quantityOnHand: 1000, quantityReserved: 0 }, businessSettings: { safetyStockPercent: 15 },
+});
+if (variableDemand.inventoryPlan.demandStdDev <= 0
+  || variableDemand.inventoryPlan.variabilitySafetyStock <= variableDemand.inventoryPlan.policySafetyStock
+  || !variableDemand.inventoryPlan.demandSpike
+  || !variableDemand.recommendations.some((item) => item.type === "overstock")
+  || !variableDemand.recommendations.some((item) => item.type === "demand_spike")) {
+  throw new Error("Demand variability, safety stock, overstock or demand-spike detection failed.");
 }
 
 const server = app.listen(0);
@@ -99,4 +119,4 @@ console.log("Health endpoint: GET /api/health");
 console.log("Authentication endpoints: web and mobile login/refresh/logout, register, me");
 console.log("Authentication, settings, notifications, recommendations and admin route protection: PASSED");
 console.log("Thirty-day seasonal and XGBoost recursive forecasting: PASSED");
-console.log("Revenue estimation and stock replenishment decision support: PASSED");
+console.log("Demand variability, safety stock, revenue and replenishment decision support: PASSED");

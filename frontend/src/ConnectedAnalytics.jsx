@@ -7,7 +7,7 @@ const colors = ["#2f6df6", "#13c995", "#f5a524", "#9c6fff", "#22cbd0", "#f57c7c"
 const count = (value, digits = 0) => new Intl.NumberFormat("en-US", { maximumFractionDigits: digits }).format(value || 0);
 const money = (value) => `Rs ${count(value, 2)}`;
 
-function useAnalytics(days) {
+function useAnalytics(days, refreshKey = 0) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -19,7 +19,7 @@ function useAnalytics(days) {
     }).catch((cause) => { if (active) setError(cause.message); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [days]);
+  }, [days, refreshKey]);
   return { data, error, loading };
 }
 
@@ -133,15 +133,23 @@ function Signal({ tone, label, title, copy }) {
 
 export function ConnectedInsightsPage() {
   const [days, setDays] = useState(180);
-  const { data, error, loading } = useAnalytics(days);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [actionError, setActionError] = useState("");
+  const { data, error, loading } = useAnalytics(days, refreshKey);
   const risks = data?.inventory.filter((row) => row.lowStock) || [];
   const top = data?.productSales.slice(0, 5) || [];
   const topCategory = data?.categories[0];
   const lead = top[0];
   const forecast = data?.latestForecast;
+  async function updateRecommendation(id, status) {
+    try {
+      await apiRequest(`/recommendations/${id}`, { method: "PATCH", body: JSON.stringify({ status }) });
+      setActionError(""); setRefreshKey((value) => value + 1);
+    } catch (cause) { setActionError(cause.message); }
+  }
   return <>
     <Heading title="Business intelligence insights" subtitle={data?.period.referenceDate ? `Based on actual sales through ${data.period.referenceDate} and current inventory` : "Signals from your sales and inventory"} days={days} setDays={setDays}/>
-    {error && <p role="alert" className="sg-data-error">{error}</p>}
+    {(error || actionError) && <p role="alert" className="sg-data-error">{error || actionError}</p>}
     {loading ? <Empty>Loading business insights...</Empty> : data && <>
       <section className="sg-insight-grid">
         <Signal tone={risks.length ? "red" : "green"} label="Inventory" title={`${risks.length} low-stock locations`} copy={risks.length ? `${risks.slice(0, 3).map((row) => `${row.name} at ${row.store}`).join(", ")}${risks.length > 3 ? " and more" : ""} are below their set reorder points.` : "No tracked stock location is below its reorder point."}/>
@@ -157,6 +165,9 @@ export function ConnectedInsightsPage() {
         {top.length ? <div className="sg-analytics-list">{top.map((row, index) => <div key={row.productId}><b>{index + 1}</b><span>{row.name}<small>{count(row.units)} units</small></span><strong>{money(row.revenue)}</strong></div>)}</div> : <Empty>Top products will appear after sales are uploaded.</Empty>}</article>
         <article className="sg-card"><Title title="Inventory actions" subtitle="Current stock versus configured reorder points"/>
           {risks.length ? <div className="sg-analytics-list">{risks.slice(0, 5).map((row) => <div key={`${row.store}-${row.productId}`}><b>!</b><span>{row.name}<small>{row.store}</small></span><strong>{count(row.stock)} / {count(row.reorderPoint)}</strong></div>)}</div> : <Empty>No low-stock actions are currently identified.</Empty>}</article></section>
+      <article className="sg-card"><Title title="Replenishment recommendations" subtitle="Forecast demand, safety stock and current inventory"/>
+        {data.recommendations?.length ? <div className="sg-analytics-list">{data.recommendations.slice(0, 12).map((item) => <div key={item.id}><b>{item.risk === "high" ? "!" : "AI"}</b><span><strong>{item.productName} · {item.store}</strong><small>{item.reason}</small></span><strong>{item.suggestedQuantity ? `Order ${count(item.suggestedQuantity)}` : item.type.replaceAll("_", " ")}</strong>{item.status === "open" && <span className="sg-row-actions"><button onClick={() => updateRecommendation(item.id, "approved")}>Approve</button><button onClick={() => updateRecommendation(item.id, "dismissed")}>Dismiss</button><button onClick={() => updateRecommendation(item.id, "completed")}>Complete</button></span>}</div>)}</div> : <Empty>Run a forecast to generate replenishment recommendations.</Empty>}
+      </article>
     </>}
   </>;
 }

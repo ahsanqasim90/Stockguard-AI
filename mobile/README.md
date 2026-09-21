@@ -22,6 +22,11 @@ builds also need FCM V1 credentials and iOS builds need Apple push credentials.
 
 CSV uploads follow the **current backend** limit of 2 MB and 10,000 rows per file. Required columns are `date,sku,product_name,category,quantity_sold,revenue`; `store_id` is optional. Each 7, 14, 28, or 30-day business forecast measures Linear Regression, ARIMA, Random Forest and the available XGBoost/seasonal candidate on the same holdout. The API automatically saves the forecast with the lowest MAE (using RMSE as the tie-breaker), estimates forecast revenue, and calculates lead-time demand, safety stock, target stock and recommended order quantity for the mobile forecast and insight screens.
 
+The **More → Replenishment** screen lists live MongoDB recommendations and lets an
+authorized user approve, dismiss, complete or reopen each action. Product cards show
+their highest-risk open action, and forecast cards include demand variability, lead-time
+demand, safety stock and days of cover.
+
 ## Checks
 
 Run `npm run check` for TypeScript and `npx expo export --platform android` to verify the Android bundle. iOS needs a device or Mac build for native runtime verification.

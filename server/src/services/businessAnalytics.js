@@ -1,6 +1,7 @@
 import { ForecastRun } from "../models/ForecastRun.js";
 import { Inventory } from "../models/Inventory.js";
 import { Product } from "../models/Product.js";
+import { Recommendation } from "../models/Recommendation.js";
 import { Sale } from "../models/Sale.js";
 import { Store } from "../models/Store.js";
 
@@ -12,13 +13,14 @@ export async function getBusinessAnalytics(business, days) {
   const end = latest?.date || null;
   const start = end ? new Date(end.getTime() - (days - 1) * 86400000) : null;
   const match = end ? { business, date: { $gte: start, $lte: end } } : null;
-  const [dailyRows, productRows, products, inventory, stores, latestRun] = await Promise.all([
+  const [dailyRows, productRows, products, inventory, stores, latestRun, recommendations] = await Promise.all([
     match ? Sale.aggregate([{ $match: match }, { $group: { _id: "$date", revenue: { $sum: "$revenue" }, units: { $sum: "$quantity" }, records: { $sum: 1 } } }, { $sort: { _id: 1 } }]) : [],
     match ? Sale.aggregate([{ $match: match }, { $group: { _id: "$product", revenue: { $sum: "$revenue" }, units: { $sum: "$quantity" } } }, { $sort: { revenue: -1 } }]) : [],
     Product.find({ business }).select("name sku productId category status").lean(),
     Inventory.find({ business }).select("product store quantityOnHand reorderPoint").lean(),
     Store.find({ business }).select("storeId name").lean(),
     ForecastRun.findOne({ business }).sort({ createdAt: -1 }).select("runId product store modelName horizonDays forecastTotal revenueEstimate inventoryPlan latestActualDate forecastStartDate createdAt").lean(),
+    Recommendation.find({ business }).sort({ createdAt: -1 }).limit(50).lean(),
   ]);
   const byProduct = new Map(products.map((p) => [p._id.toString(), p]));
   const byStore = new Map(stores.map((s) => [s._id.toString(), s]));
@@ -52,6 +54,14 @@ export async function getBusinessAnalytics(business, days) {
       averageRecordedDayRevenue: daily.length ? roundMoney(revenue / daily.length) : 0,
       lowStockLocations: inventoryItems.filter((row) => row.lowStock).length },
     daily, categories, productSales, inventory: inventoryItems,
+    recommendations: recommendations.map((item) => ({ id: item._id.toString(),
+      runId: item.forecastRunId || item.runId, type: item.type, risk: item.risk, status: item.status,
+      productId: item.product.toString(), productName: byProduct.get(item.product.toString())?.name || "Archived product",
+      store: byStore.get(item.store.toString())?.storeId || "Archived store",
+      suggestedQuantity: item.suggestedQuantity, currentStock: item.currentStock,
+      reorderPoint: item.reorderPoint, targetStock: item.targetStock, safetyStock: item.safetyStock,
+      daysOfCover: item.daysOfCover, demandChangePercent: item.demandChangePercent,
+      estimatedRevenue: item.estimatedRevenue, reason: item.reason, createdAt: item.createdAt })),
     latestForecast: latestRun && forecastProduct && forecastStore ? {
       runId: latestRun.runId, productName: forecastProduct.name, store: forecastStore.storeId,
       model: latestRun.modelName, horizonDays: latestRun.horizonDays, forecastTotal: latestRun.forecastTotal,
