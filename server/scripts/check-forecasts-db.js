@@ -75,9 +75,23 @@ try {
     throw new Error("Thirty-day model comparison, MAE/RMSE, or automatic selection is incorrect.");
   if (thirty.run.predictions[0].date !== "2026-02-20" || thirty.run.predictions.at(-1).date !== "2026-03-21")
     throw new Error("Thirty-day forecast dates are incomplete or incorrect.");
+  if (thirty.run.revenueEstimate.source !== "historical_average" || thirty.run.revenueEstimate.unitRevenue !== 10
+    || Math.abs(thirty.run.forecastRevenue - thirty.run.forecastTotal * 10) > 0.01
+    || thirty.run.predictions.some((point) => Math.abs(point.forecast_revenue - point.forecast_sales * 10) > 0.01))
+    throw new Error("Thirty-day forecast revenue estimate is incorrect.");
+  if (!thirty.run.inventoryPlan || thirty.run.inventoryPlan.leadTimeDays !== 7
+    || thirty.run.inventoryPlan.recommendedOrderQuantity <= 0 || thirty.run.inventoryPlan.action !== "reorder"
+    || thirty.run.recommendation?.type !== "reorder")
+    throw new Error("Stock replenishment recommendation is incomplete.");
   const latest = await expect(await fetch(`${base}/forecasts/latest`, { headers }), 200);
   if (latest.run.id !== thirty.run.id || latest.run.horizon !== 30 || latest.run.predictions.length !== 30)
     throw new Error("Saved thirty-day forecast was not restored completely.");
+  if (latest.run.revenueEstimate.forecastRevenue !== thirty.run.revenueEstimate.forecastRevenue
+    || latest.run.inventoryPlan.recommendedOrderQuantity !== thirty.run.inventoryPlan.recommendedOrderQuantity)
+    throw new Error("Saved revenue estimate or inventory plan was not restored.");
+  const recommendations = await expect(await fetch(`${base}/recommendations`, { headers }), 200);
+  if (!recommendations.recommendations.some((item) => item.runId === thirty.run.id && item.type === "reorder"))
+    throw new Error("Saved replenishment recommendation was not listed.");
   await expect(await fetch(`${base}/imports/sales`, { method: "POST", headers, body: file(50) }), 201);
   const invalidated = await expect(await fetch(`${base}/forecasts/latest`, { headers }), 200);
   if (invalidated.run !== null) throw new Error("CSV re-import did not invalidate stale forecasts.");
@@ -120,13 +134,15 @@ try {
   await expect(await run(7, otherHeaders), 404);
   const otherLatest = await expect(await fetch(`${base}/forecasts/latest`, { headers: otherHeaders }), 200);
   if (otherLatest.run !== null) throw new Error("A different business could see this forecast.");
+  const otherRecommendations = await expect(await fetch(`${base}/recommendations`, { headers: otherHeaders }), 200);
+  if (otherRecommendations.recommendations.length) throw new Error("A different business could see replenishment recommendations.");
 
   console.log(`${remoteBaseUrl ? "Live" : "Local"} StockGuard forecasting integration PASSED`);
-  console.log("CSV history, signed Python comparison, automatic selection, mapped XGBoost, persistence and tenant isolation verified.");
+  console.log("CSV history, signed Python comparison, revenue estimation, replenishment, persistence and tenant isolation verified.");
 } finally {
   for (const business of businesses) {
     const filter = { business };
-    await Promise.all([models.Forecast.deleteMany(filter), models.ForecastRun.deleteMany(filter),
+    await Promise.all([models.Forecast.deleteMany(filter), models.ForecastRun.deleteMany(filter), models.Recommendation.deleteMany(filter),
       models.Sale.deleteMany(filter), models.ImportBatch.deleteMany(filter),
       models.Inventory.deleteMany(filter), models.Product.deleteMany(filter),
       models.Store.deleteMany(filter), models.User.deleteMany(filter)]);

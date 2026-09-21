@@ -23,6 +23,11 @@ Operational events create upload-completed, forecast-ready, low-stock, and
 critical-inventory alerts for the web and mobile clients, with optional SMTP
 email and Expo push delivery.
 
+Every forecast includes estimated daily and total revenue plus a live replenishment
+plan based on available stock, supplier lead time and the configured safety-stock
+percentage. These decision-support results appear in web and mobile forecasts,
+reports and business insights, and are saved as tenant-isolated recommendations.
+
 StockGuard AI combines a React website, a React Native mobile app, a Node.js/Express
 business API, MongoDB, and a checksum-verified XGBoost inference runtime. Mapped
 production store/product IDs run the trained model; custom IDs use the seasonal

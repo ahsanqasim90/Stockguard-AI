@@ -5,10 +5,13 @@ import { z } from "zod";
 import { requireAuth, requirePermission } from "../middleware/auth.js";
 import { Forecast } from "../models/Forecast.js";
 import { ForecastRun } from "../models/ForecastRun.js";
+import { Inventory } from "../models/Inventory.js";
 import { Product } from "../models/Product.js";
+import { Recommendation } from "../models/Recommendation.js";
 import { Sale } from "../models/Sale.js";
 import { Store } from "../models/Store.js";
 import { createBusinessForecast, forecastError, selectBestForecast } from "../services/businessForecast.js";
+import { buildDecisionSupport, recommendationReason } from "../services/decisionSupport.js";
 import { comparePythonModels } from "../services/pythonMlService.js";
 import { writeAudit } from "../services/auditService.js";
 import { publishNotification } from "../services/notificationService.js";
@@ -23,10 +26,11 @@ function dateString(value) { return new Date(value).toISOString().slice(0, 10); 
 
 async function publicRun(run) {
   if (!run) return null;
-  const [store, product, forecasts] = await Promise.all([
+  const [store, product, forecasts, recommendation] = await Promise.all([
     Store.findOne({ _id: run.store, business: run.business }).lean(),
     Product.findOne({ _id: run.product, business: run.business }).lean(),
     Forecast.find({ business: run.business, runId: run.runId }).sort({ forecastDate: 1 }).lean(),
+    Recommendation.findOne({ business: run.business, runId: run.runId }).lean(),
   ]);
   if (!store || !product || forecasts.length !== run.horizonDays) return null;
   return { id: run.runId, storeId: store._id.toString(), storeCode: store.storeId,
@@ -38,11 +42,25 @@ async function publicRun(run) {
       selected: item.selected, durationMs: item.durationMs })),
     horizon: run.horizonDays,
     latestActualDate: dateString(run.latestActualDate), forecastStartDate: dateString(run.forecastStartDate),
-    forecastTotal: run.forecastTotal, generatedAt: run.createdAt,
+    forecastTotal: run.forecastTotal, forecastRevenue: run.revenueEstimate?.forecastRevenue || 0,
+    revenueEstimate: { unitRevenue: run.revenueEstimate?.unitRevenue || 0,
+      source: run.revenueEstimate?.source || "unavailable", forecastRevenue: run.revenueEstimate?.forecastRevenue || 0 },
+    inventoryPlan: run.inventoryPlan ? { currentStock: run.inventoryPlan.currentStock || 0,
+      reservedStock: run.inventoryPlan.reservedStock || 0, availableStock: run.inventoryPlan.availableStock || 0,
+      leadTimeDays: run.inventoryPlan.leadTimeDays || 7, safetyStockPercent: run.inventoryPlan.safetyStockPercent || 0,
+      averageDailyDemand: run.inventoryPlan.averageDailyDemand || 0, leadTimeDemand: run.inventoryPlan.leadTimeDemand || 0,
+      safetyStock: run.inventoryPlan.safetyStock || 0, reorderPoint: run.inventoryPlan.reorderPoint || 0,
+      targetStock: run.inventoryPlan.targetStock || 0, recommendedOrderQuantity: run.inventoryPlan.recommendedOrderQuantity || 0,
+      action: run.inventoryPlan.action || "none", risk: run.inventoryPlan.risk || "low" } : null,
+    recommendation: recommendation ? { id: recommendation._id.toString(), type: recommendation.type,
+      risk: recommendation.risk, suggestedQuantity: recommendation.suggestedQuantity,
+      reason: recommendation.reason, status: recommendation.status } : null,
+    generatedAt: run.createdAt,
     backtest: { observations: run.backtest.observations, cutoff: dateString(run.backtest.cutoff),
       mae: run.backtest.mae, rmse: run.backtest.rmse },
     history: run.history.map((point) => ({ date: dateString(point.date), quantity: point.quantity })),
-    predictions: forecasts.map((point) => ({ date: dateString(point.forecastDate), forecast_sales: point.predictedQuantity })),
+    predictions: forecasts.map((point) => ({ date: dateString(point.forecastDate),
+      forecast_sales: point.predictedQuantity, forecast_revenue: point.predictedRevenue || 0 })),
   };
 }
 
@@ -85,19 +103,23 @@ router.post("/run", requirePermission("forecasts.run"), async (request, response
   ]);
   if (!store || !product) throw forecastError("This store or product was not found in your business.", 404);
   const sales = (await Sale.find({ business, store: store._id, product: product._id })
-    .sort({ date: -1 }).limit(365).select("date quantity").lean()).reverse();
+    .sort({ date: -1 }).limit(365).select("date quantity revenue").lean()).reverse();
   const nodeForecast = createBusinessForecast(sales, horizon, {
     storeCode: store.storeId,
     productCode: product.sku || product.productId,
   });
   const pythonResult = await comparePythonModels(sales, horizon);
   const calculated = selectBestForecast(nodeForecast, pythonResult, sales);
+  const inventory = await Inventory.findOne({ business, store: store._id, product: product._id }).lean();
+  const decision = buildDecisionSupport({ predictions: calculated.predictions, sales, product, inventory,
+    businessSettings: request.auth.business.settings || {} });
   const runId = crypto.randomUUID();
   const generatedAt = new Date();
-  await Forecast.bulkWrite(calculated.predictions.map((point) => ({ updateOne: {
+  await Forecast.bulkWrite(decision.predictions.map((point) => ({ updateOne: {
     filter: { business, store: store._id, product: product._id,
       forecastDate: new Date(`${point.date}T00:00:00.000Z`), modelVersion: calculated.modelVersion },
-    update: { $set: { predictedQuantity: point.forecast_sales, modelName: calculated.model,
+    update: { $set: { predictedQuantity: point.forecast_sales, predictedRevenue: point.forecast_revenue,
+      modelName: calculated.model,
       horizonDays: horizon, generatedAt, runId }, $setOnInsert: { business, store: store._id, product: product._id,
       forecastDate: new Date(`${point.date}T00:00:00.000Z`), modelVersion: calculated.modelVersion } },
     upsert: true,
@@ -111,12 +133,26 @@ router.post("/run", requirePermission("forecasts.run"), async (request, response
     latestActualDate: new Date(`${calculated.latestActualDate}T00:00:00.000Z`),
     forecastStartDate: new Date(`${calculated.forecastStartDate}T00:00:00.000Z`),
     forecastTotal: calculated.forecastTotal,
+    revenueEstimate: decision.revenue, inventoryPlan: decision.inventoryPlan,
     backtest: { ...calculated.backtest, cutoff: new Date(`${calculated.backtest.cutoff}T00:00:00.000Z`) },
     history: calculated.history.map((point) => ({ date: new Date(`${point.date}T00:00:00.000Z`), quantity: point.quantity })),
   });
+  if (decision.inventoryPlan.action !== "none") {
+    await Recommendation.create({ business, runId, store: store._id, product: product._id,
+      type: decision.inventoryPlan.action, risk: decision.inventoryPlan.risk,
+      suggestedQuantity: decision.inventoryPlan.recommendedOrderQuantity,
+      currentStock: decision.inventoryPlan.currentStock, reorderPoint: decision.inventoryPlan.reorderPoint,
+      targetStock: decision.inventoryPlan.targetStock, safetyStock: decision.inventoryPlan.safetyStock,
+      estimatedRevenue: decision.revenue.forecastRevenue,
+      reason: recommendationReason(product.name, store.storeId, decision.inventoryPlan, horizon),
+      forecastStartDate: new Date(`${calculated.forecastStartDate}T00:00:00.000Z`),
+      forecastEndDate: new Date(`${decision.predictions.at(-1).date}T00:00:00.000Z`),
+    });
+  }
   await writeAudit(request, { action: "forecast.completed", targetType: "forecast", targetId: run.runId,
     targetLabel: `${product.name} at ${store.storeId}`, metadata: { model: run.modelName, horizonDays: run.horizonDays,
-      mae: run.backtest.mae, rmse: run.backtest.rmse } });
+      mae: run.backtest.mae, rmse: run.backtest.rmse, forecastRevenue: decision.revenue.forecastRevenue,
+      recommendedOrderQuantity: decision.inventoryPlan.recommendedOrderQuantity } });
   await publishNotification({ business, recipients: [request.auth.user._id], type: "forecast_ready",
     title: "AI forecast ready", message: `${product.name} at ${store.storeId}: ${run.forecastTotal.toFixed(1)} units forecast across ${run.horizonDays} days using ${run.modelName.replaceAll("_", " ")}.`,
     severity: "success", link: "/dashboard?section=forecast", data: { runId: run.runId, productId: product._id.toString() },

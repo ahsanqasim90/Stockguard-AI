@@ -5,6 +5,7 @@ import { requireAuth, requirePermission } from "../middleware/auth.js";
 import { ImportBatch } from "../models/ImportBatch.js";
 import { Forecast } from "../models/Forecast.js";
 import { ForecastRun } from "../models/ForecastRun.js";
+import { Recommendation } from "../models/Recommendation.js";
 import { Product } from "../models/Product.js";
 import { Sale } from "../models/Sale.js";
 import { Store } from "../models/Store.js";
@@ -56,7 +57,7 @@ router.post("/sales", requirePermission("imports.write"), (request, response, ne
     upsert: true,
   } })), { ordered: false });
   const imported = result.upsertedCount + result.modifiedCount;
-  await Promise.all([Forecast.deleteMany({ business }), ForecastRun.deleteMany({ business })]);
+  await Promise.all([Forecast.deleteMany({ business }), ForecastRun.deleteMany({ business }), Recommendation.deleteMany({ business })]);
   const batch = await ImportBatch.create({ business, uploadedBy: request.auth.user._id,
     fileName: request.file.originalname.slice(0, 180), records: rows.length, salesUpserted: imported });
   await writeAudit(request, { action: "sales.imported", targetType: "import", targetId: batch._id,

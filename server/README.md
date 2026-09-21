@@ -136,6 +136,14 @@ requires `horizon + 14` consecutive rows. `GET /api/forecasts/latest` restores t
 latest run. Importing a new CSV invalidates that business's saved forecasts so
 users rerun them on updated history.
 
+Each saved run also estimates daily and total forecast revenue from the historical
+average revenue per sold unit, falling back to the product price when revenue history
+is unavailable. Stock decision support combines forecast demand, available inventory,
+supplier lead time and the business safety-stock policy to calculate a reorder point,
+target stock and recommended order quantity. `GET /api/recommendations` lists these
+tenant-isolated actions; authorized users can update their workflow status with
+`PATCH /api/recommendations/:id`.
+
 The model bundle is checksum-verified during API startup. Run `npm run check:model`
 inside `server` to compare the JavaScript scorer against official XGBoost 3.2
 predictions and verify recursive feature engineering.

@@ -7,6 +7,7 @@ const forecastSchema = new mongoose.Schema({
   product: { type: objectId, ref: "Product", required: true, index: true },
   forecastDate: { type: Date, required: true, index: true },
   predictedQuantity: { type: Number, required: true, min: 0 },
+  predictedRevenue: { type: Number, min: 0, default: 0 },
   modelName: { type: String, required: true, default: "xgboost" },
   modelVersion: { type: String, required: true, default: "1.0.0" },
   runId: { type: String, trim: true, index: true },

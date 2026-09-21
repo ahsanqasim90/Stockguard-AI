@@ -39,12 +39,14 @@ router.post("/", requirePermission("reports.create"), async (request, response) 
   if (type === "forecast") {
     const run = await ForecastRun.findOne({ business }).sort({ createdAt: -1 }).lean();
     if (!run) throw failure("Run a business forecast before generating its report.", 422);
-    const predictions = await Forecast.find({ business, runId: run.runId }).sort({ forecastDate: 1 }).select("forecastDate predictedQuantity").lean();
+    const predictions = await Forecast.find({ business, runId: run.runId }).sort({ forecastDate: 1 }).select("forecastDate predictedQuantity predictedRevenue").lean();
     if (predictions.length !== run.horizonDays) throw failure("The latest forecast is incomplete. Run it again.", 422);
     const overview = await getBusinessAnalytics(business, days);
     content = JSON.stringify({ project: "StockGuard AI", businessForecast: overview.latestForecast,
+      revenueEstimate: run.revenueEstimate, inventoryPlan: run.inventoryPlan,
       backtest: { observations: run.backtest.observations, cutoff: run.backtest.cutoff.toISOString().slice(0, 10), mae: run.backtest.mae, rmse: run.backtest.rmse },
-      predictions: predictions.map((point) => ({ date: point.forecastDate.toISOString().slice(0, 10), units: point.predictedQuantity })) }, null, 2);
+      predictions: predictions.map((point) => ({ date: point.forecastDate.toISOString().slice(0, 10),
+        units: point.predictedQuantity, estimatedRevenue: point.predictedRevenue || 0 })) }, null, 2);
     format = "json";
     periodDays = undefined;
   } else {

@@ -5,6 +5,7 @@ await import("../src/models/index.js");
 const { default: app } = await import("../src/app.js");
 const { effectivePermissions } = await import("../src/services/permissions.js");
 const { createBusinessForecast, FORECAST_HORIZONS } = await import("../src/services/businessForecast.js");
+const { buildDecisionSupport } = await import("../src/services/decisionSupport.js");
 
 const expectedModels = [
   "Business", "User", "Invitation", "AuditLog", "Notification", "PushDevice", "Store", "Product", "Sale", "Inventory", "ImportBatch", "Forecast", "ForecastRun", "Recommendation", "Report",
@@ -29,6 +30,18 @@ if (seasonalThirty.model !== "seasonal_naive" || seasonalThirty.predictions.leng
 const xgboostThirty = createBusinessForecast(forecastHistory, 30, { storeCode: "S0085", productCode: "P0131" });
 if (xgboostThirty.model !== "global_xgboost" || xgboostThirty.predictions.length !== 30
   || xgboostThirty.backtest.observations !== 30) throw new Error("Thirty-day XGBoost forecast check failed.");
+const decisionSupport = buildDecisionSupport({
+  predictions: Array.from({ length: 30 }, (_, index) => ({ date: `2026-03-${String(index + 1).padStart(2, "0")}`, forecast_sales: 10 })),
+  sales: [{ quantity: 20, revenue: 1000 }], product: { price: 40, supplierLeadTimeDays: 7 },
+  inventory: { quantityOnHand: 25, quantityReserved: 5 },
+  businessSettings: { safetyStockPercent: 20, defaultLeadTimeDays: 5 },
+});
+if (decisionSupport.revenue.unitRevenue !== 50 || decisionSupport.revenue.forecastRevenue !== 15000
+  || decisionSupport.predictions.length !== 30 || decisionSupport.predictions.some((point) => point.forecast_revenue !== 500)
+  || decisionSupport.inventoryPlan.reorderPoint !== 84 || decisionSupport.inventoryPlan.targetStock !== 314
+  || decisionSupport.inventoryPlan.recommendedOrderQuantity !== 294 || decisionSupport.inventoryPlan.action !== "reorder") {
+  throw new Error("Revenue estimation or stock replenishment calculation failed.");
+}
 
 const server = app.listen(0);
 const address = server.address();
@@ -59,6 +72,9 @@ try {
   const protectedNotifications = await fetch(`${baseUrl}/api/notifications`);
   if (protectedNotifications.status !== 401) throw new Error("Notification route protection check failed.");
 
+  const protectedRecommendations = await fetch(`${baseUrl}/api/recommendations`);
+  if (protectedRecommendations.status !== 401) throw new Error("Recommendation route protection check failed.");
+
   const invalidMobileLogin = await fetch(`${baseUrl}/api/auth/mobile/login`, {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({}),
   });
@@ -81,5 +97,6 @@ console.log("StockGuard MERN backend check PASSED");
 console.log(`Mongoose models: ${expectedModels.join(", ")}`);
 console.log("Health endpoint: GET /api/health");
 console.log("Authentication endpoints: web and mobile login/refresh/logout, register, me");
-console.log("Authentication, settings, notifications and admin route protection: PASSED");
+console.log("Authentication, settings, notifications, recommendations and admin route protection: PASSED");
 console.log("Thirty-day seasonal and XGBoost recursive forecasting: PASSED");
+console.log("Revenue estimation and stock replenishment decision support: PASSED");

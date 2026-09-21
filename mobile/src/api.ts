@@ -10,9 +10,9 @@ export type User = {
   preferences?: { notifications?: Partial<NotificationSettings>; theme?: 'dark' | 'system' };
   business: { id?: string; name: string; timezone?: string; currency: string } | null;
 };
-export type Product = { id: string; name: string; sku: string; category: string; supplier: string; price: number; stock: number; reorder: number; status: string };
+export type Product = { id: string; name: string; sku: string; category: string; supplier: string; price: number; stock: number; reorder: number; leadTimeDays: number; status: string };
 export type Series = { storeId: string; storeCode: string; productId: string; sku: string; productName: string; observations: number; latestActualDate: string };
-export type ForecastRun = { id: string; storeCode: string; sku: string; productName: string; model: string; modelVersion: string; modelSelection?: string | null; comparisonServiceVersion?: string | null; comparisons: { model: string; modelVersion: string; mae: number; rmse: number; selected: boolean; durationMs: number }[]; horizon: number; forecastTotal: number; latestActualDate: string; forecastStartDate: string; backtest: { observations: number; mae: number; rmse: number }; predictions: { date: string; forecast_sales: number }[] };
+export type ForecastRun = { id: string; storeCode: string; sku: string; productName: string; model: string; modelVersion: string; modelSelection?: string | null; comparisonServiceVersion?: string | null; comparisons: { model: string; modelVersion: string; mae: number; rmse: number; selected: boolean; durationMs: number }[]; horizon: number; forecastTotal: number; forecastRevenue: number; revenueEstimate: { unitRevenue: number; source: string; forecastRevenue: number }; inventoryPlan: { currentStock: number; reservedStock: number; availableStock: number; leadTimeDays: number; safetyStockPercent: number; averageDailyDemand: number; leadTimeDemand: number; safetyStock: number; reorderPoint: number; targetStock: number; recommendedOrderQuantity: number; action: 'reorder' | 'overstock' | 'none'; risk: 'low' | 'medium' | 'high' } | null; recommendation: { id: string; type: string; risk: string; suggestedQuantity: number; reason: string; status: string } | null; latestActualDate: string; forecastStartDate: string; backtest: { observations: number; mae: number; rmse: number }; predictions: { date: string; forecast_sales: number; forecast_revenue: number }[] };
 export type Overview = {
   period: { days: number; startDate: string | null; endDate: string | null; referenceDate?: string | null; recordedDays?: number };
   totals: { revenue: number; units: number; saleRecords: number; lowStockLocations: number; averageRecordedDayRevenue?: number };
@@ -20,7 +20,7 @@ export type Overview = {
   categories: { name: string; revenue: number; units: number }[];
   productSales: { productId: string; name: string; sku: string; category?: string; revenue: number; units: number }[];
   inventory: { productId: string; name: string; sku: string; category?: string; store: string; stock: number; reorderPoint: number; lowStock: boolean }[];
-  latestForecast: { productName: string; store?: string; model: string; forecastTotal: number; horizonDays: number; generatedAt?: string } | null;
+  latestForecast: { productName: string; store?: string; model: string; forecastTotal: number; forecastRevenue: number; horizonDays: number; generatedAt?: string; inventoryPlan?: ForecastRun['inventoryPlan'] } | null;
 };
 export type ImportRecord = { id: string; name: string; records: number; date: string; status: string };
 export type ReportRecord = { id: string; name: string; type: 'sales' | 'inventory' | 'forecast'; format: string; days?: number; filename: string; sizeBytes: number; createdAt: string };

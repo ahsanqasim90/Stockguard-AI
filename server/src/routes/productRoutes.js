@@ -20,6 +20,7 @@ const schema = z.object({
   stock: z.coerce.number().int().min(0).default(0),
   reorder: z.coerce.number().int().min(0).default(0),
   price: z.coerce.number().min(0).default(0),
+  leadTimeDays: z.coerce.number().int().min(1).max(365).default(7),
 });
 
 function badRequest(message) { const error = new Error(message); error.statusCode = 400; return error; }
@@ -37,6 +38,7 @@ async function view(product, store) {
   const inventory = await Inventory.findOne({ business: product.business, store: store._id, product: product._id }).lean();
   return { id: product._id.toString(), name: product.name, sku: product.sku || product.productId,
     category: product.category || "", supplier: product.supplier || "", price: product.price,
+    leadTimeDays: product.supplierLeadTimeDays || 7,
     stock: inventory?.quantityOnHand || 0, reorder: inventory?.reorderPoint || 0, status: product.status };
 }
 
@@ -47,7 +49,7 @@ router.get("/", requirePermission("products.read"), async (request, response) =>
   const inventory = await Inventory.find({ business, store: store._id, product: { $in: products.map((p) => p._id) } }).lean();
   const byProduct = new Map(inventory.map((i) => [i.product.toString(), i]));
   response.json({ products: products.map((p) => ({ id: p._id.toString(), name: p.name, sku: p.sku || p.productId,
-    category: p.category || "", supplier: p.supplier || "", price: p.price,
+    category: p.category || "", supplier: p.supplier || "", price: p.price, leadTimeDays: p.supplierLeadTimeDays || 7,
     stock: byProduct.get(p._id.toString())?.quantityOnHand || 0,
     reorder: byProduct.get(p._id.toString())?.reorderPoint || 0, status: p.status })) });
 });
@@ -58,7 +60,8 @@ router.post("/", write, async (request, response) => {
   if (await Product.exists({ business, sku: data.sku })) { const error = new Error("This SKU already exists."); error.statusCode = 409; throw error; }
   const store = await defaultStore(business);
   const product = await Product.create({ business, productId: `ITEM-${crypto.randomBytes(6).toString("hex").toUpperCase()}`,
-    name: data.name, sku: data.sku, category: data.category, supplier: data.supplier, price: data.price });
+    name: data.name, sku: data.sku, category: data.category, supplier: data.supplier, price: data.price,
+    supplierLeadTimeDays: data.leadTimeDays });
   const inventory = await Inventory.findOneAndUpdate({ business, store: store._id, product: product._id },
     { $set: { quantityOnHand: data.stock, reorderPoint: data.reorder } }, { upsert: true, returnDocument: "after" });
   await writeAudit(request, { action: "product.created", targetType: "product", targetId: product._id, targetLabel: product.name });
@@ -74,6 +77,7 @@ router.patch("/:id", write, async (request, response) => {
   const product = await Product.findOne({ _id: request.params.id, business, status: { $ne: "discontinued" } });
   if (!product) throw missing();
   for (const key of ["name", "sku", "category", "supplier", "price"]) if (key in data) product[key] = data[key];
+  if ("leadTimeDays" in data) product.supplierLeadTimeDays = data.leadTimeDays;
   await product.save();
   const store = await defaultStore(business);
   const inventoryUpdate = {};

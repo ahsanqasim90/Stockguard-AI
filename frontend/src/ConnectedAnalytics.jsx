@@ -109,6 +109,12 @@ export function ConnectedReportsPage() {
       </section>
       <section className="sg-two-one"><article className="sg-card"><Title title="Revenue over time" subtitle="Actual sales only · no estimated profit"/><RevenueChart daily={data.daily}/></article>
         <article className="sg-card"><Title title="Revenue by category"/><CategoryChart categories={data.categories}/></article></section>
+      {data.latestForecast && <><Title title="Latest AI decision support" subtitle={`${data.latestForecast.productName} at ${data.latestForecast.store} · ${data.latestForecast.horizonDays}-day plan`}/><section className="sg-stat-grid">
+        <Stat Icon={TrendingUp} value={money(data.latestForecast.forecastRevenue)} label="Estimated forecast revenue" tone="teal"/>
+        <Stat Icon={Package} value={count(data.latestForecast.forecastTotal, 1)} label="Forecast units"/>
+        <Stat Icon={Activity} value={count(data.latestForecast.inventoryPlan?.recommendedOrderQuantity || 0)} label="Recommended order units" tone="amber"/>
+        <Stat Icon={BrainCircuit} value={count(data.latestForecast.inventoryPlan?.targetStock || 0)} label="Target stock" tone="violet"/>
+      </section></>}
     </>}
     <article className="sg-card"><Title title="Generate a report" subtitle="Saved snapshots can be downloaded again later"/>
       <div className="sg-report-types">{[[TrendingUp, "sales", "Sales", "Daily revenue, units and records · CSV"], [Package, "inventory", "Inventory", "Current stock by store and product · CSV"], [BrainCircuit, "forecast", "AI Forecast", "Latest business forecast and backtest · JSON"]].map(([Icon, type, title, description]) =>
@@ -142,8 +148,8 @@ export function ConnectedInsightsPage() {
         <Signal tone="blue" label="Sales" title={lead ? `${lead.name} leads sales` : "No sales recorded"} copy={lead ? `${count(lead.units)} units and ${money(lead.revenue)} revenue in the selected period.` : "Upload sales CSV data to identify top products."}/>
         <Signal tone="amber" label="Category" title={topCategory ? `${topCategory.name} is the top category` : "Category data pending"} copy={topCategory ? `${money(topCategory.revenue)} recorded revenue across ${count(topCategory.units)} units.` : "Category revenue will be calculated from uploaded sales."}/>
         <Signal tone="teal" label="Coverage" title={`${data.period.recordedDays} days with sales records`} copy={data.period.referenceDate ? `The selected ${days}-day window ends on the latest recorded sale, ${data.period.referenceDate}. Days without records are not assumed to have zero sales.` : "No sales date is available yet."}/>
-        <Signal tone="violet" label="Forecast" title={forecast ? `${count(forecast.forecastTotal, 1)} units forecast` : "No business forecast yet"} copy={forecast ? `${forecast.productName} at ${forecast.store}: ${forecast.horizonDays} days from ${forecast.forecastStartDate}, using ${forecast.model}.` : "Run a forecast for a store and product with sufficient daily history."}/>
-        <Signal tone="green" label="Revenue" title={money(data.totals.revenue)} copy={`Recorded revenue from ${count(data.totals.saleRecords)} sales rows in the selected period. Profit is unavailable without historical cost data.`}/>
+        <Signal tone="violet" label="Forecast" title={forecast ? `${count(forecast.forecastTotal, 1)} units · ${money(forecast.forecastRevenue)}` : "No business forecast yet"} copy={forecast ? `${forecast.productName} at ${forecast.store}: ${forecast.horizonDays} days from ${forecast.forecastStartDate}, using ${forecast.model}.` : "Run a forecast for a store and product with sufficient daily history."}/>
+        <Signal tone={forecast?.inventoryPlan?.action === "reorder" ? "red" : "green"} label="Replenishment" title={forecast?.inventoryPlan?.action === "reorder" ? `Order ${count(forecast.inventoryPlan.recommendedOrderQuantity)} units` : forecast ? "Inventory plan is healthy" : "Plan pending"} copy={forecast?.inventoryPlan ? `Available ${count(forecast.inventoryPlan.availableStock)}, reorder point ${count(forecast.inventoryPlan.reorderPoint)}, target stock ${count(forecast.inventoryPlan.targetStock)}.` : "Run a forecast to calculate lead-time demand, safety stock and target inventory."}/>
       </section>
       <section className="sg-two-one"><article className="sg-card"><Title title="Recorded revenue trend" subtitle="Only dates present in uploaded sales"/><RevenueChart daily={data.daily}/></article>
         <article className="sg-card"><Title title="Revenue mix"/><CategoryChart categories={data.categories}/></article></section>

@@ -18,7 +18,7 @@ export async function getBusinessAnalytics(business, days) {
     Product.find({ business }).select("name sku productId category status").lean(),
     Inventory.find({ business }).select("product store quantityOnHand reorderPoint").lean(),
     Store.find({ business }).select("storeId name").lean(),
-    ForecastRun.findOne({ business }).sort({ createdAt: -1 }).select("runId product store modelName horizonDays forecastTotal latestActualDate forecastStartDate createdAt").lean(),
+    ForecastRun.findOne({ business }).sort({ createdAt: -1 }).select("runId product store modelName horizonDays forecastTotal revenueEstimate inventoryPlan latestActualDate forecastStartDate createdAt").lean(),
   ]);
   const byProduct = new Map(products.map((p) => [p._id.toString(), p]));
   const byStore = new Map(stores.map((s) => [s._id.toString(), s]));
@@ -55,6 +55,9 @@ export async function getBusinessAnalytics(business, days) {
     latestForecast: latestRun && forecastProduct && forecastStore ? {
       runId: latestRun.runId, productName: forecastProduct.name, store: forecastStore.storeId,
       model: latestRun.modelName, horizonDays: latestRun.horizonDays, forecastTotal: latestRun.forecastTotal,
+      forecastRevenue: latestRun.revenueEstimate?.forecastRevenue || 0,
+      revenueEstimate: latestRun.revenueEstimate || { unitRevenue: 0, source: "unavailable", forecastRevenue: 0 },
+      inventoryPlan: latestRun.inventoryPlan || null,
       latestActualDate: isoDay(latestRun.latestActualDate), forecastStartDate: isoDay(latestRun.forecastStartDate),
       generatedAt: latestRun.createdAt,
     } : null,
