@@ -45,6 +45,7 @@ function Button({ children, variant = "primary", className = "", ...props }) { r
 function PageHeading({ title, copy, children }) { return <div className="sg-page-heading"><div><h1>{title}</h1><p>{copy}</p></div>{children}</div>; }
 function StatCard({ icon: Icon, value, label, change, tone = "blue" }) { return <article className="sg-stat"><span className={`sg-icon ${tone}`}><Icon /></span><div><strong>{value}</strong><p>{label}</p></div>{change && <em className={change.startsWith("-") ? "down" : "up"}>{change}</em>}</article>; }
 function CardTitle({ title, copy, children }) { return <div className="sg-card-title"><div><h2>{title}</h2>{copy && <p>{copy}</p>}</div>{children}</div>; }
+function Insight({ tone, label, title, copy }) { return <article className={`sg-insight ${tone}`}><label>{label}</label><h3>{title}</h3><p>{copy}</p></article>; }
 function Toggle({ checked, onChange, label }) { return <button type="button" className={`sg-toggle ${checked ? "on" : ""}`} onClick={() => onChange(!checked)} aria-label={label}><span /></button>; }
 
 function ConnectedDashboardPage({ products, uploads, forecast, model, setPage, currentUser }) {
