@@ -9,6 +9,8 @@ ml/
 python_packages/
 scripts/
 .venv/
+.runtime/
+mobile/node_modules/
 *.ps1
 README.md
 tmp/
