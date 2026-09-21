@@ -425,6 +425,13 @@ html[data-theme="light"] {
 .form-error { color: #ff7f8d; font-size: 12px; }
 .auth-loading { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 14px; color: #9eb1cc; background: var(--sg-bg); }
 .auth-loading span { width: 34px; height: 34px; border: 3px solid #263b5f; border-top-color: var(--sg-blue); border-radius: 50%; animation: auth-spin .8s linear infinite; }
+.auth-recovery { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 14px; padding: 28px; color: #e8efff; text-align: center; background: var(--sg-bg); }
+.auth-recovery img { width: 84px; height: 84px; object-fit: contain; border-radius: 22px; }
+.auth-recovery h1 { margin: 8px 0 0; font: 800 clamp(25px,4vw,38px) Manrope,sans-serif; }
+.auth-recovery p { max-width: 520px; margin: 0; color: #9eb1cc; line-height: 1.65; }
+.auth-recovery > div { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.auth-recovery button { padding: 12px 20px; border: 1px solid #2f6df6; border-radius: 10px; color: white; background: #2f6df6; font-weight: 800; cursor: pointer; }
+.auth-recovery button.secondary { border-color: #30415f; background: #172238; }
 @keyframes auth-spin { to { transform: rotate(360deg); } }
 
 /* Login */

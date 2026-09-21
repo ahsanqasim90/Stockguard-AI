@@ -10,7 +10,7 @@ const forecastSchema = new mongoose.Schema({
   modelName: { type: String, required: true, default: "xgboost" },
   modelVersion: { type: String, required: true, default: "1.0.0" },
   runId: { type: String, trim: true, index: true },
-  horizonDays: { type: Number, required: true, min: 1, max: 365, default: 28 },
+  horizonDays: { type: Number, required: true, min: 1, max: 365, default: 30 },
   generatedAt: { type: Date, default: Date.now, index: true },
 }, baseOptions);
 

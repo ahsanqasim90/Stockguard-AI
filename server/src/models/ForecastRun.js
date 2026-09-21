@@ -18,7 +18,7 @@ const forecastRunSchema = new mongoose.Schema({
     selected: { type: Boolean, required: true, default: false },
     durationMs: { type: Number, required: true, min: 0, default: 0 },
   }],
-  horizonDays: { type: Number, required: true, enum: [7, 14, 28] },
+  horizonDays: { type: Number, required: true, enum: [7, 14, 28, 30] },
   latestActualDate: { type: Date, required: true },
   forecastStartDate: { type: Date, required: true },
   forecastTotal: { type: Number, required: true, min: 0 },

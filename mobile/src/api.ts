@@ -30,7 +30,7 @@ export type SystemActivity = { generatedAt: string; users: { total: number; acti
 export type SettingsData = {
   notifications: NotificationSettings;
   theme: 'dark' | 'system';
-  business: { safetyStockPercent: number; defaultLeadTimeDays: number; forecastHorizonDays: 7 | 14 | 28 };
+  business: { safetyStockPercent: number; defaultLeadTimeDays: number; forecastHorizonDays: 7 | 14 | 28 | 30 };
 };
 
 type Session = { accessToken: string; refreshToken: string; user: User };

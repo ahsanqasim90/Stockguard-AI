@@ -6,9 +6,23 @@
     <meta name="theme-color" content="#07101f" />
     <meta name="description" content="StockGuard AI helps SMEs forecast demand, plan inventory and make data-driven business decisions." />
     <title>StockGuard AI - Predictive Inventory Intelligence</title>
+    <script>
+      (() => {
+        const reloadKey = "stockguard_asset_reload";
+        window.addEventListener("error", (event) => {
+          const element = event.target;
+          const assetFailed = element && (element.tagName === "SCRIPT" || element.tagName === "LINK");
+          if (assetFailed && !sessionStorage.getItem(reloadKey)) {
+            sessionStorage.setItem(reloadKey, "1");
+            window.location.reload();
+          }
+        }, true);
+        window.addEventListener("load", () => sessionStorage.removeItem(reloadKey));
+      })();
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div class="auth-loading"><span></span>Loading StockGuard AI…</div></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

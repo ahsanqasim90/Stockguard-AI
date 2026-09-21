@@ -25,7 +25,7 @@ const settingsSchema = z.object({
   theme: z.enum(["dark", "system"]).optional(),
   safetyStockPercent: z.coerce.number().min(0).max(100).optional(),
   defaultLeadTimeDays: z.coerce.number().int().min(1).max(365).optional(),
-  forecastHorizonDays: z.coerce.number().int().refine((value) => [7, 14, 28].includes(value), "Forecast horizon must be 7, 14 or 28 days.").optional(),
+  forecastHorizonDays: z.coerce.number().int().refine((value) => [7, 14, 28, 30].includes(value), "Forecast horizon must be 7, 14, 28 or 30 days.").optional(),
 }).strict().refine((value) => Object.keys(value).length > 0, "Provide at least one setting.");
 
 const defaults = {
@@ -55,7 +55,7 @@ function output(user, business) {
     business: {
       safetyStockPercent: business.settings?.safetyStockPercent ?? 15,
       defaultLeadTimeDays: business.settings?.defaultLeadTimeDays ?? 7,
-      forecastHorizonDays: business.settings?.forecastHorizonDays ?? 28,
+      forecastHorizonDays: business.settings?.forecastHorizonDays ?? 30,
     },
   };
 }

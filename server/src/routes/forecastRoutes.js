@@ -16,7 +16,7 @@ import { publishNotification } from "../services/notificationService.js";
 const router = Router();
 router.use(requireAuth);
 const input = z.object({
-  storeId: z.string(), productId: z.string(), horizon: z.number().int().refine((n) => [7, 14, 28].includes(n)),
+  storeId: z.string(), productId: z.string(), horizon: z.number().int().refine((n) => [7, 14, 28, 30].includes(n)),
 });
 function businessId(request) { return request.auth.business._id; }
 function dateString(value) { return new Date(value).toISOString().slice(0, 10); }
@@ -76,7 +76,7 @@ router.get("/latest", requirePermission("forecasts.read"), async (request, respo
 router.post("/run", requirePermission("forecasts.run"), async (request, response) => {
   const parsed = input.safeParse(request.body);
   if (!parsed.success || !mongoose.isValidObjectId(request.body?.storeId) || !mongoose.isValidObjectId(request.body?.productId))
-    throw forecastError("Choose a valid store, product and 7, 14 or 28-day horizon.", 400);
+    throw forecastError("Choose a valid store, product and 7, 14, 28 or 30-day horizon.", 400);
   const { storeId, productId, horizon } = parsed.data;
   const business = businessId(request);
   const [store, product] = await Promise.all([

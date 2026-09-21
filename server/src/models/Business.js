@@ -12,7 +12,7 @@ const businessSchema = new mongoose.Schema({
   settings: {
     safetyStockPercent: { type: Number, min: 0, max: 100, default: 15 },
     defaultLeadTimeDays: { type: Number, min: 1, max: 365, default: 7 },
-    forecastHorizonDays: { type: Number, enum: [7, 14, 28], default: 28 },
+    forecastHorizonDays: { type: Number, enum: [7, 14, 28, 30], default: 30 },
   },
 }, baseOptions);
 

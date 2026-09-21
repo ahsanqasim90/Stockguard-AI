@@ -119,8 +119,8 @@ them into smaller CSV batches. Store IDs and SKUs that match the production
 
 `GET /api/forecasts/series` lists uploaded store/SKU sales series in the signed-in
 business. `POST /api/forecasts/run` takes JSON such as
-`{"storeId":"<MongoDB store ID>","productId":"<MongoDB product ID>","horizon":28}`.
-Valid horizons are 7, 14, and 28 days. The API requires at least
+`{"storeId":"<MongoDB store ID>","productId":"<MongoDB product ID>","horizon":30}`.
+Valid horizons are 7, 14, 28, and 30 days. The API requires at least
 `max(28, horizon + 14)` consecutive daily sales records ending at the latest
 actual date. Missing days are rejected rather than silently treated as zero;
 upload explicit zero-sales rows. Forecast dates start on the day after the last

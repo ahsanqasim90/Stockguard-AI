@@ -25,8 +25,8 @@ from sklearn.linear_model import LinearRegression
 from statsmodels.tsa.arima.model import ARIMA
 
 
-SERVICE_VERSION = "1.0.0"
-SUPPORTED_HORIZONS = {7, 14, 28}
+SERVICE_VERSION = "1.1.0"
+SUPPORTED_HORIZONS = {7, 14, 28, 30}
 MODEL_VERSION = {
     "linear_regression": f"sklearn-linear-{SERVICE_VERSION}",
     "arima": f"statsmodels-arima-{SERVICE_VERSION}",
@@ -43,7 +43,7 @@ class ComparisonRequest(BaseModel):
     @classmethod
     def validate_horizon(cls, value: int) -> int:
         if value not in SUPPORTED_HORIZONS:
-            raise ValueError("Forecast horizon must be 7, 14 or 28 days.")
+            raise ValueError("Forecast horizon must be 7, 14, 28 or 30 days.")
         return value
 
     @field_validator("values")
@@ -234,6 +234,7 @@ def health(path: str = "") -> dict[str, Any]:
         "service": "StockGuard Python ML Service",
         "version": SERVICE_VERSION,
         "models": [name for name, _runner in MODEL_RUNNERS],
+        "supportedHorizons": sorted(SUPPORTED_HORIZONS),
     }
 
 

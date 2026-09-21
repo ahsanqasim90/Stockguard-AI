@@ -67,17 +67,26 @@ try {
   if (twentyEight.run.predictions.length !== 28 || twentyEight.run.backtest.mae !== 0 || twentyEight.run.backtest.rmse !== 0)
     throw new Error("Twenty-eight-day automatic selection or holdout backtest is incorrect.");
   if (twentyEight.run.predictions[0].date !== "2026-02-20") throw new Error("Forecast did not start after the last actual day.");
+  const thirty = await expect(await run(30), 201);
+  if (thirty.run.predictions.length !== 30 || thirty.run.backtest.observations !== 30
+    || thirty.run.comparisons.length !== 4
+    || !thirty.run.comparisons.every((item) => Number.isFinite(item.mae) && Number.isFinite(item.rmse))
+    || thirty.run.comparisons.filter((item) => item.selected).length !== 1)
+    throw new Error("Thirty-day model comparison, MAE/RMSE, or automatic selection is incorrect.");
+  if (thirty.run.predictions[0].date !== "2026-02-20" || thirty.run.predictions.at(-1).date !== "2026-03-21")
+    throw new Error("Thirty-day forecast dates are incomplete or incorrect.");
   const latest = await expect(await fetch(`${base}/forecasts/latest`, { headers }), 200);
-  if (latest.run.id !== twentyEight.run.id || latest.run.predictions.length !== 28) throw new Error("Saved forecast was not restored.");
+  if (latest.run.id !== thirty.run.id || latest.run.horizon !== 30 || latest.run.predictions.length !== 30)
+    throw new Error("Saved thirty-day forecast was not restored completely.");
   await expect(await fetch(`${base}/imports/sales`, { method: "POST", headers, body: file(50) }), 201);
   const invalidated = await expect(await fetch(`${base}/forecasts/latest`, { headers }), 200);
   if (invalidated.run !== null) throw new Error("CSV re-import did not invalidate stale forecasts.");
-  await expect(await run(28), 201);
+  await expect(await run(30), 201);
 
   const filter = { business: businesses[0], date: new Date("2026-01-30T00:00:00.000Z") };
   const removed = await models.Sale.findOneAndDelete(filter);
   if (!removed) throw new Error("Gap test could not find its temporary sale.");
-  const gap = await expect(await run(28), 422);
+  const gap = await expect(await run(30), 422);
   if (!gap.message.includes("missing dates")) throw new Error("Gap in daily history was not detected.");
 
   await expect(await fetch(`${base}/imports/sales`, { method: "POST", headers,
@@ -91,6 +100,12 @@ try {
     || liveModel.run.comparisons.filter((item) => item.selected).length !== 1
     || !liveModel.run.modelSelection?.includes("lowest holdout MAE")) {
     throw new Error("Mapped series did not compare production XGBoost with the Python models.");
+  }
+  const mappedThirty = await expect(await runFor(mapped, 30), 201);
+  if (mappedThirty.run.predictions.length !== 30 || mappedThirty.run.backtest.observations !== 30
+    || !mappedThirty.run.comparisons.some((item) => item.model === "global_xgboost")
+    || mappedThirty.run.comparisons.filter((item) => item.selected).length !== 1) {
+    throw new Error("Mapped series did not complete the thirty-day XGBoost comparison.");
   }
 
   const other = await expect(await fetch(`${base}/auth/register`, { method: "POST",

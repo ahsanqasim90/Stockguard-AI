@@ -5,7 +5,7 @@ import {
 } from "./xgboostRuntime.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-export const FORECAST_HORIZONS = [7, 14, 28];
+export const FORECAST_HORIZONS = [7, 14, 28, 30];
 
 export function forecastError(message, statusCode = 422) {
   const error = new Error(message);
@@ -14,7 +14,7 @@ export function forecastError(message, statusCode = 422) {
 }
 
 export function continuousHistory(sales, horizon, requiredRows = Math.max(28, horizon + 7)) {
-  if (!FORECAST_HORIZONS.includes(horizon)) throw forecastError("Forecast horizon must be 7, 14 or 28 days.", 400);
+  if (!FORECAST_HORIZONS.includes(horizon)) throw forecastError("Forecast horizon must be 7, 14, 28 or 30 days.", 400);
   const needed = requiredRows;
   if (sales.length < needed) throw forecastError(`At least ${needed} consecutive daily sales rows are needed for a ${horizon}-day forecast. Include zero-sales days.`);
   const recent = sales.slice(-needed);

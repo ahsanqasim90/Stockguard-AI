@@ -4,6 +4,7 @@ const { default: mongoose } = await import("mongoose");
 await import("../src/models/index.js");
 const { default: app } = await import("../src/app.js");
 const { effectivePermissions } = await import("../src/services/permissions.js");
+const { createBusinessForecast, FORECAST_HORIZONS } = await import("../src/services/businessForecast.js");
 
 const expectedModels = [
   "Business", "User", "Invitation", "AuditLog", "Notification", "PushDevice", "Store", "Product", "Sale", "Inventory", "ImportBatch", "Forecast", "ForecastRun", "Recommendation", "Report",
@@ -16,6 +17,18 @@ if (effectivePermissions({ role: "staff", permissionsCustomized: false }).includ
   throw new Error("Staff role permission boundary failed.");
 if (!effectivePermissions({ role: "manager", permissionsCustomized: true, permissions: ["users.manage"] }).includes("users.manage"))
   throw new Error("Custom permission override failed.");
+if (!FORECAST_HORIZONS.includes(30)) throw new Error("Thirty-day forecast horizon is not enabled.");
+
+const forecastHistory = Array.from({ length: 60 }, (_, index) => ({
+  date: new Date(Date.UTC(2026, 0, index + 1)),
+  quantity: index % 7 + 1,
+}));
+const seasonalThirty = createBusinessForecast(forecastHistory, 30, { storeCode: "CUSTOM", productCode: "CUSTOM" });
+if (seasonalThirty.model !== "seasonal_naive" || seasonalThirty.predictions.length !== 30
+  || seasonalThirty.backtest.observations !== 30) throw new Error("Thirty-day seasonal forecast check failed.");
+const xgboostThirty = createBusinessForecast(forecastHistory, 30, { storeCode: "S0085", productCode: "P0131" });
+if (xgboostThirty.model !== "global_xgboost" || xgboostThirty.predictions.length !== 30
+  || xgboostThirty.backtest.observations !== 30) throw new Error("Thirty-day XGBoost forecast check failed.");
 
 const server = app.listen(0);
 const address = server.address();
@@ -69,3 +82,4 @@ console.log(`Mongoose models: ${expectedModels.join(", ")}`);
 console.log("Health endpoint: GET /api/health");
 console.log("Authentication endpoints: web and mobile login/refresh/logout, register, me");
 console.log("Authentication, settings, notifications and admin route protection: PASSED");
+console.log("Thirty-day seasonal and XGBoost recursive forecasting: PASSED");

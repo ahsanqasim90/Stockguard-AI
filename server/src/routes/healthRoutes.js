@@ -2,6 +2,7 @@ import { Router } from "express";
 
 import { databaseStatus } from "../config/database.js";
 import { env } from "../config/env.js";
+import { FORECAST_HORIZONS } from "../services/businessForecast.js";
 import { productionModelStatus } from "../services/xgboostRuntime.js";
 import { pythonMlStatus } from "../services/pythonMlService.js";
 
@@ -19,6 +20,7 @@ router.get("/", async (_request, response) => {
       selection: "lowest_holdout_mae",
       tieBreaker: "rmse",
       candidates: ["linear_regression", "arima", "random_forest", "global_xgboost_or_seasonal_naive"],
+      supportedHorizons: FORECAST_HORIZONS,
       available: true,
     },
     productionModel: productionModelStatus(),
