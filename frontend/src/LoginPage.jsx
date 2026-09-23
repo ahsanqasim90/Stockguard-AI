@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ArrowRight, BrainCircuit, Eye, EyeOff, LockKeyhole, ShieldCheck, TrendingUp } from "lucide-react";
 
-import { login, register } from "./auth";
+import { login, register, requestPasswordReset } from "./auth";
 
 export default function LoginPage() {
   const [mode, setMode] = useState("login");
@@ -9,6 +9,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
   const field = (name) => ({ value: form[name], onChange: (event) => setForm({ ...form, [name]: event.target.value }) });
 
@@ -17,6 +18,11 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
+      if (mode === "forgot") {
+        const result = await requestPasswordReset(form.email);
+        setMessage(result.message);
+        return;
+      }
       if (mode === "register") await register(form);
       else await login({ email: form.email, password: form.password });
       window.location.assign("/dashboard");
@@ -30,6 +36,7 @@ export default function LoginPage() {
   function changeMode(nextMode) {
     setMode(nextMode);
     setError("");
+    setMessage("");
   }
 
   return <div className="login-page">
@@ -48,22 +55,24 @@ export default function LoginPage() {
     <section className="login-form-side">
       <form className="login-form" onSubmit={submit}>
         <div className="login-lock"><LockKeyhole size={22} /></div>
-        <div className="auth-mode" aria-label="Account action">
+        {mode !== "forgot" && <div className="auth-mode" aria-label="Account action">
           <button type="button" className={mode === "login" ? "active" : ""} onClick={() => changeMode("login")}>Sign in</button>
           <button type="button" className={mode === "register" ? "active" : ""} onClick={() => changeMode("register")}>Create account</button>
-        </div>
+        </div>}
         <p className="kicker">Secure workspace</p>
-        <h2>{mode === "register" ? "Create your workspace" : "Sign in"}</h2>
-        <p>{mode === "register" ? "Register the business owner and create an isolated StockGuard workspace." : "Access the StockGuard administration panel."}</p>
+        <h2>{mode === "register" ? "Create your workspace" : mode === "forgot" ? "Reset your password" : "Sign in"}</h2>
+        <p>{mode === "register" ? "Register the business owner and create an isolated StockGuard workspace." : mode === "forgot" ? "Enter your account email to request a secure, one-time reset link." : "Access the StockGuard administration panel."}</p>
         {mode === "register" && <>
           <label>Full name<input required minLength="2" autoComplete="name" {...field("name")} /></label>
           <label>Business name<input required minLength="2" autoComplete="organization" {...field("businessName")} /></label>
         </>}
         <label>Email address<input required type="email" autoComplete="email" {...field("email")} /></label>
-        <label>Password<div className="password-field"><input required minLength="8" autoComplete={mode === "register" ? "new-password" : "current-password"} type={showPassword ? "text" : "password"} {...field("password")} /><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label="Show password">{showPassword ? <EyeOff /> : <Eye />}</button></div></label>
-        {mode === "login" && <div className="remember-row"><label><input type="checkbox" defaultChecked /> Remember me</label><button type="button">Forgot password?</button></div>}
+        {mode !== "forgot" && <label>Password<div className="password-field"><input required minLength="8" autoComplete={mode === "register" ? "new-password" : "current-password"} type={showPassword ? "text" : "password"} {...field("password")} /><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label="Show password">{showPassword ? <EyeOff /> : <Eye />}</button></div></label>}
+        {mode === "login" && <div className="remember-row"><label><input type="checkbox" defaultChecked /> Remember me</label><button type="button" onClick={() => changeMode("forgot")}>Forgot password?</button></div>}
         {error && <div className="form-error" role="alert">{error}</div>}
-        <button className="login-submit" type="submit" disabled={loading}>{loading ? "Please wait…" : mode === "register" ? "Create account" : "Sign in"} {!loading && <ArrowRight size={17} />}</button>
+        {message && <div className="form-success" role="status">{message}</div>}
+        <button className="login-submit" type="submit" disabled={loading}>{loading ? "Please wait…" : mode === "register" ? "Create account" : mode === "forgot" ? "Request reset link" : "Sign in"} {!loading && <ArrowRight size={17} />}</button>
+        {mode === "forgot" && <button className="login-back" type="button" onClick={() => changeMode("login")}>Back to sign in</button>}
         <div className="demo-box"><b>MongoDB-backed access</b><span>{mode === "register" ? "Create the first owner account after Atlas is connected." : "Use the account you registered for this business."}</span></div>
         <p className="oauth-note">Google and Microsoft sign-in will be added after the core application workflow.</p>
       </form>

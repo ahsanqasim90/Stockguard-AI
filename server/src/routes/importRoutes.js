@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import mongoose from "mongoose";
 import { Router } from "express";
 import multer from "multer";
 import { requireAuth, requirePermission } from "../middleware/auth.js";
@@ -15,7 +16,7 @@ import { publishNotification } from "../services/notificationService.js";
 
 const router = Router();
 router.use(requireAuth);
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024, files: 1 },
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024, files: 1 },
   fileFilter(_request, file, callback) {
     if (!file.originalname.toLowerCase().endsWith(".csv")) return callback(csvError("Choose a .csv file."));
     callback(null, true);
@@ -24,12 +25,12 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 *
 router.get("/", requirePermission("imports.read"), async (request, response) => {
   const imports = await ImportBatch.find({ business: request.auth.business._id }).sort({ createdAt: -1 }).limit(30).lean();
   response.json({ imports: imports.map((item) => ({ id: item._id.toString(), name: item.fileName,
-    records: item.records, date: item.createdAt, status: "Imported" })) });
+    records: item.records, date: item.createdAt, status: "Imported", canDelete: Boolean(item.batchKey) })) });
 });
 
 router.post("/sales", requirePermission("imports.write"), (request, response, next) => {
   upload.single("file")(request, response, (error) => {
-    if (error?.code === "LIMIT_FILE_SIZE") return next(csvError("CSV file must be 2 MB or smaller."));
+    if (error?.code === "LIMIT_FILE_SIZE") return next(csvError("CSV file must be 10 MB or smaller."));
     if (error) return next(error);
     next();
   });
@@ -60,7 +61,7 @@ router.post("/sales", requirePermission("imports.write"), (request, response, ne
   await Promise.all([Forecast.deleteMany({ business }), ForecastRun.deleteMany({ business }),
     Recommendation.deleteMany({ business, status: "open" })]);
   const batch = await ImportBatch.create({ business, uploadedBy: request.auth.user._id,
-    fileName: request.file.originalname.slice(0, 180), records: rows.length, salesUpserted: imported });
+    fileName: request.file.originalname.slice(0, 180), batchKey: batchId, records: rows.length, salesUpserted: imported });
   await writeAudit(request, { action: "sales.imported", targetType: "import", targetId: batch._id,
     targetLabel: batch.fileName, metadata: { records: rows.length, salesUpserted: imported } });
   await publishNotification({ business, recipients: [request.auth.user._id], type: "upload_completed",
@@ -68,7 +69,25 @@ router.post("/sales", requirePermission("imports.write"), (request, response, ne
     severity: "success", link: "/dashboard?section=upload", data: { importId: batch._id.toString(), records: rows.length },
     dedupeKey: `upload:${batch._id}` });
   response.status(201).json({ import: { id: batch._id.toString(), name: batch.fileName,
-    records: batch.records, salesUpserted: imported, date: batch.createdAt, status: "Imported" } });
+    records: batch.records, salesUpserted: imported, date: batch.createdAt, status: "Imported", canDelete: true } });
+});
+
+router.delete("/:id", requirePermission("imports.write"), async (request, response) => {
+  if (!mongoose.isValidObjectId(request.params.id)) throw csvError("Invalid import ID.");
+  const business = request.auth.business._id;
+  const batch = await ImportBatch.findOne({ _id: request.params.id, business });
+  if (!batch) { const error = csvError("Import was not found."); error.statusCode = 404; throw error; }
+  if (!batch.batchKey) { const error = csvError("This legacy import cannot be rolled back automatically."); error.statusCode = 409; throw error; }
+  const result = await Sale.deleteMany({ business, importBatchId: batch.batchKey });
+  await Promise.all([
+    ImportBatch.deleteOne({ _id: batch._id, business }),
+    Forecast.deleteMany({ business }),
+    ForecastRun.deleteMany({ business }),
+    Recommendation.deleteMany({ business, status: "open" }),
+  ]);
+  await writeAudit(request, { action: "sales.import_removed", targetType: "import", targetId: batch._id,
+    targetLabel: batch.fileName, severity: "warning", metadata: { recordsDeleted: result.deletedCount } });
+  response.json({ deleted: { importId: batch._id.toString(), records: result.deletedCount } });
 });
 
 export default router;

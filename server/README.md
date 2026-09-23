@@ -37,6 +37,9 @@ HTTP-only cookie.
 - `POST /api/auth/refresh` renews an authenticated session.
 - `GET /api/auth/me` returns the current user and requires a bearer token.
 - `POST /api/auth/logout` invalidates the refresh session.
+- `POST /api/auth/password/forgot` requests a password reset email.
+- `GET /api/auth/password/reset/:token` validates a single-use reset link.
+- `POST /api/auth/password/reset/:token` changes the password and closes existing sessions.
 - `GET /api/auth/invitations/:token` validates a pending team invitation.
 - `POST /api/auth/invitations/:token/accept` sets the invited user's password and activates the account.
 
@@ -53,6 +56,7 @@ invalidating that user's existing web and mobile sessions.
 - `POST /api/admin/invitations/:userId/resend` rotates an invitation link.
 - `DELETE /api/admin/invitations/:userId` revokes a pending invitation.
 - `PATCH /api/admin/users/:id` edits role, status, name, or permission overrides.
+- `POST /api/admin/users/:id/password-reset` creates a 30-minute reset link for secure administrator-assisted recovery.
 - `GET /api/admin/roles` returns the enforceable role/permission matrix.
 - `GET /api/admin/audit` returns the tenant's one-year audit trail.
 - `GET /api/admin/activity` returns user, data, security, MongoDB and ML service activity.
@@ -111,9 +115,14 @@ quantities and revenue must be nonnegative, and each date/SKU/store key must be
 unique within the file. The import validates the whole CSV before writing, then
 upserts products and daily sales so re-importing the same rows does not duplicate
 sales. Upload history is available from `GET /api/imports`. The current endpoint
-accepts up to 2 MB and 10,000 sales rows per file. For larger histories, split
+accepts up to 10 MB and 10,000 sales rows per file. For larger histories, split
 them into smaller CSV batches. Store IDs and SKUs that match the production
 `S####` and `P####` mappings can use live XGBoost inference.
+
+New imports receive a batch key so an authorized user can remove the upload and
+the sales rows still owned by that batch with `DELETE /api/imports/:id`. Rollback
+also clears stale forecasts and open recommendations. Older imports created before
+batch tracking remain read-only to avoid deleting unrelated sales records.
 
 ## Business forecasting API
 

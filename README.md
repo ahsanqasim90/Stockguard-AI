@@ -19,6 +19,9 @@ the first owner account after setting `MONGODB_URI` in `server/.env`. Passwords
 are bcrypt-hashed, the dashboard verifies a JWT session, and admin navigation is
 permission-controlled. Products, imports, forecasts, reports, invitations,
 permissions, audit logs, settings, and notification inboxes persist in MongoDB.
+Password recovery uses expiring one-time links and revokes existing sessions
+after a successful reset. Web and mobile users can request recovery, while an
+authorized administrator can generate a link when outbound email is unavailable.
 Operational events create upload-completed, forecast-ready, low-stock, and
 critical-inventory alerts for the web and mobile clients, with optional SMTP
 email and Expo push delivery.
@@ -34,6 +37,10 @@ production store/product IDs run the trained model; custom IDs use the seasonal
 fallback automatically.
 
 ## MERN backend and MongoDB
+
+The submitted requirements are mapped to production evidence in
+[`docs/SRS_COMPLIANCE.md`](docs/SRS_COMPLIANCE.md), including the MongoDB Atlas
+backup and recovery controls that must be configured at the cloud-account level.
 
 The `server` folder contains the Node.js/Express API and Mongoose schemas for
 businesses, users, stores, products, sales, inventory, forecasts, and

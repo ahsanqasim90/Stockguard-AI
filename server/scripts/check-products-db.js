@@ -58,18 +58,22 @@ try {
   if (await models.Sale.countDocuments({ business: businessId }) !== 2) throw new Error("Repeated CSV import duplicated sales.");
   const history = await expect(await fetch(`${base}/imports`, { headers }), 200);
   if (history.imports.length !== 2) throw new Error("Import history was not saved.");
+  if (!history.imports.every((item) => item.canDelete)) throw new Error("New imports are not marked as rollback-capable.");
+  const removed = await expect(await fetch(`${base}/imports/${history.imports[0].id}`, { method: "DELETE", headers }), 200);
+  if (removed.deleted.records !== 2 || await models.Sale.countDocuments({ business: businessId }) !== 0)
+    throw new Error("Import rollback did not remove the sales rows owned by the latest batch.");
 
   await expect(await fetch(`${base}/products/${created.product.id}`, { method: "DELETE", headers }), 204);
   const list = await expect(await fetch(`${base}/products`, { headers }), 200);
   if (list.products.length !== 0) throw new Error("Deleted product remains active.");
   console.log(`${remoteBaseUrl ? "Live" : "Local"} StockGuard Products + CSV MongoDB integration PASSED`);
-  console.log("Tenant auth, CRUD, inventory, invalid-file rejection, idempotent sales import, history and soft delete verified.");
+  console.log("Tenant auth, CRUD, inventory, invalid-file rejection, idempotent sales import, rollback, history and soft delete verified.");
 } finally {
   for (const id of [businessId, secondBusinessId].filter(Boolean)) {
     const filter = { business: id };
     await Promise.all([models.Sale.deleteMany(filter), models.ImportBatch.deleteMany(filter),
       models.Inventory.deleteMany(filter), models.Product.deleteMany(filter), models.Store.deleteMany(filter),
-      models.User.deleteMany(filter)]);
+      models.AuditLog.deleteMany(filter), models.Notification.deleteMany(filter), models.User.deleteMany(filter)]);
     await models.Business.deleteOne({ _id: id });
   }
   if (server) await new Promise((resolve) => server.close(resolve));

@@ -475,6 +475,10 @@ html[data-theme="light"] {
 .remember-row button { border: 0; background: transparent; color: #73a7ff; cursor: pointer; }
 .login-submit { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 13px; border: 0; border-radius: 11px; color: white !important; background: var(--sg-blue); cursor: pointer; font-weight: 800; box-shadow: 0 10px 28px rgba(47,109,246,.28); }
 .login-submit:disabled { cursor: wait; opacity: .68; }
+.login-back { width: 100%; margin-top: 10px; padding: 10px; border: 0; color: #73a7ff !important; background: transparent; cursor: pointer; font-weight: 700; }
+.form-success { margin: 14px 0; padding: 12px; border: 1px solid rgba(19,201,149,.35); border-radius: 10px; color: #8fe4cc; background: rgba(19,201,149,.08); font-size: 12px; line-height: 1.55; }
+.reset-success-icon { width: 45px; height: 45px; margin-top: 24px; color: var(--sg-green); }
+.login-form a.login-submit { text-decoration: none; margin-top: 18px; }
 .demo-box { margin-top: 18px; padding: 13px; border: 1px solid rgba(19,201,149,.22); border-radius: 10px; background: rgba(19,201,149,.06); color: #88a5b3; font-size: 12px; line-height: 1.55; }
 .demo-box b { color: var(--sg-green); }
 .demo-box span { display: block; }

@@ -92,13 +92,51 @@ try {
   const revokedMobileProfile = await fetch(`${baseUrl}/me`, { headers: { authorization: `Bearer ${refreshedMobileSession.accessToken}` } });
   if (revokedMobileProfile.status !== 401) throw new Error("Mobile logout did not invalidate the access token.");
 
+  const recoveryLogin = await fetch(`${baseUrl}/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const recoverySession = await json(recoveryLogin);
+  const apiRoot = baseUrl.replace(/\/auth$/, "");
+  const resetLinkResponse = await fetch(`${apiRoot}/admin/users/${registrationBody.user.id}/password-reset`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${recoverySession.accessToken}` },
+  });
+  if (resetLinkResponse.status !== 201) throw new Error(`Expected password reset link 201, received ${resetLinkResponse.status}.`);
+  const resetLinkBody = await json(resetLinkResponse);
+  const resetToken = new URL(resetLinkBody.reset.resetUrl).pathname.split("/").filter(Boolean).at(-1);
+  const inspectReset = await fetch(`${baseUrl}/password/reset/${encodeURIComponent(resetToken)}`);
+  if (inspectReset.status !== 200) throw new Error("Password reset link could not be inspected.");
+  const newPassword = "Updated-Test-Password-2026";
+  const completeReset = await fetch(`${baseUrl}/password/reset/${encodeURIComponent(resetToken)}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ password: newPassword }),
+  });
+  if (completeReset.status !== 200) throw new Error(`Expected password reset 200, received ${completeReset.status}.`);
+  const reusedReset = await fetch(`${baseUrl}/password/reset/${encodeURIComponent(resetToken)}`);
+  if (reusedReset.status !== 410) throw new Error("A used password reset link was accepted twice.");
+  const oldPasswordLogin = await fetch(`${baseUrl}/login`, {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, password }),
+  });
+  if (oldPasswordLogin.status !== 401) throw new Error("The previous password still works after reset.");
+  const newPasswordLogin = await fetch(`${baseUrl}/login`, {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, password: newPassword }),
+  });
+  if (newPasswordLogin.status !== 200) throw new Error("The new password was rejected after reset.");
+
   console.log(`${remoteBaseUrl ? "Live" : "Local"} MongoDB authentication integration check PASSED`);
-  console.log("Web and mobile login, protected route, refresh, and logout invalidation verified.");
+  console.log("Web/mobile sessions, logout invalidation, one-time password recovery and session revocation verified.");
 } finally {
   const createdUser = await models.User.findOne({ email }).select("business").lean().catch(() => null);
   businessId ||= createdUser?.business;
   await models.User.deleteOne({ email }).catch(() => {});
-  if (businessId) await models.Business.deleteOne({ _id: businessId }).catch(() => {});
+  if (businessId) await Promise.all([
+    models.PasswordReset.deleteMany({ business: businessId }),
+    models.AuditLog.deleteMany({ business: businessId }),
+    models.Business.deleteOne({ _id: businessId }),
+  ]).catch(() => {});
   if (server) await new Promise((resolve) => server.close(resolve));
   await database.disconnectDatabase().catch(() => {});
 }

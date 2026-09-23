@@ -5,6 +5,7 @@ const importBatchSchema = new mongoose.Schema({
   ...tenantFields,
   uploadedBy: { type: objectId, ref: "User", required: true },
   fileName: { type: String, required: true, maxlength: 180 },
+  batchKey: { type: String, default: "", maxlength: 80, index: true },
   records: { type: Number, required: true, min: 0 },
   salesUpserted: { type: Number, required: true, min: 0 },
   status: { type: String, enum: ["imported"], default: "imported" },

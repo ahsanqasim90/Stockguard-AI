@@ -20,6 +20,7 @@ import { writeAudit } from "../services/auditService.js";
 import { effectivePermissions, permissions, rolePermissions } from "../services/permissions.js";
 import { pythonMlStatus } from "../services/pythonMlService.js";
 import { productionModelStatus } from "../services/xgboostRuntime.js";
+import { createPasswordReset } from "../services/passwordResetService.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -173,6 +174,16 @@ router.patch("/users/:id", requirePermission("users.manage"), async (request, re
     targetType: "user", targetId: user._id, targetLabel: user.email, severity: "security",
     metadata: { before, after: { name: user.name, role: user.role, status: user.status, permissions: effectivePermissions(user) } } });
   response.json({ user: view(user) });
+});
+
+router.post("/users/:id/password-reset", requirePermission("users.manage"), async (request, response) => {
+  const user = await getManagedUser(request);
+  if (user.status !== "active") throw failure("Only active users can receive a password reset link.", 409);
+  const { reset, resetUrl } = await createPasswordReset({ business: request.auth.business._id,
+    user: user._id, requestedBy: request.auth.user._id });
+  await writeAudit(request, { action: "password.reset_link_created", targetType: "user", targetId: user._id,
+    targetLabel: user.email, severity: "security", metadata: { expiresAt: reset.expiresAt } });
+  response.status(201).json({ reset: { resetUrl, expiresAt: reset.expiresAt } });
 });
 
 router.get("/audit", requirePermission("audit.read"), async (request, response) => {

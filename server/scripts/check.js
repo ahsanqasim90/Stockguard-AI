@@ -8,7 +8,7 @@ const { createBusinessForecast, FORECAST_HORIZONS } = await import("../src/servi
 const { buildDecisionSupport } = await import("../src/services/decisionSupport.js");
 
 const expectedModels = [
-  "Business", "User", "Invitation", "AuditLog", "Notification", "PushDevice", "Store", "Product", "Sale", "Inventory", "ImportBatch", "Forecast", "ForecastRun", "Recommendation", "Report",
+  "Business", "User", "Invitation", "PasswordReset", "AuditLog", "Notification", "PushDevice", "Store", "Product", "Sale", "Inventory", "ImportBatch", "Forecast", "ForecastRun", "Recommendation", "Report",
 ];
 const missingModels = expectedModels.filter((name) => !mongoose.models[name]);
 
@@ -94,6 +94,11 @@ try {
 
   const protectedRecommendations = await fetch(`${baseUrl}/api/recommendations`);
   if (protectedRecommendations.status !== 401) throw new Error("Recommendation route protection check failed.");
+
+  const invalidPasswordRecovery = await fetch(`${baseUrl}/api/auth/password/forgot`, {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: "invalid" }),
+  });
+  if (invalidPasswordRecovery.status !== 400) throw new Error("Password recovery validation check failed.");
 
   const invalidMobileLogin = await fetch(`${baseUrl}/api/auth/mobile/login`, {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({}),

@@ -6,7 +6,8 @@
   "outputDirectory": "frontend/dist",
   "functions": {
     "api/index.js": {
-      "includeFiles": "server/models/production/**"
+      "includeFiles": "server/models/production/**",
+      "maxDuration": 60
     },
     "api/main.py": {
       "maxDuration": 60,
@@ -19,6 +20,7 @@
     { "source": "/api/:path*", "destination": "/api/index" },
     { "source": "/login", "destination": "/index.html" },
     { "source": "/invite/:path*", "destination": "/index.html" },
+    { "source": "/reset-password/:path*", "destination": "/index.html" },
     { "source": "/dashboard", "destination": "/index.html" },
     { "source": "/dashboard/:path*", "destination": "/index.html" }
   ]

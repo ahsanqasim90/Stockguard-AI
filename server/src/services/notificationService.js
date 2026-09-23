@@ -102,6 +102,22 @@ export function notificationChannels() {
   return { emailConfigured: emailConfigured(), pushConfigured: true };
 }
 
+export async function sendPasswordResetEmail({ user, resetUrl }) {
+  if (!emailConfigured()) return { status: "unavailable" };
+  try {
+    const result = await emailTransport().sendMail({
+      from: env.emailFrom,
+      to: user.email,
+      subject: "Reset your StockGuard AI password",
+      text: `Hello ${user.name},\n\nUse this one-time link within 30 minutes to reset your StockGuard AI password:\n${resetUrl}\n\nIf you did not request this, you can ignore this email.`,
+      html: `<div style="font-family:Arial,sans-serif;color:#10203b"><h2>Reset your StockGuard AI password</h2><p>Hello ${html(user.name)},</p><p>This one-time link expires in 30 minutes.</p><p><a href="${html(resetUrl)}">Reset password</a></p><p>If you did not request this, you can ignore this email.</p></div>`,
+    });
+    return { status: "sent", providerId: result.messageId || "" };
+  } catch (error) {
+    return { status: "failed", error: safeError(error) };
+  }
+}
+
 export async function publishNotification({
   business, recipients, type, title, message, severity = "info", link = "/dashboard", data = {}, dedupeKey = "",
 }) {

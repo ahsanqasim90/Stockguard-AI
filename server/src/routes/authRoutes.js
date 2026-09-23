@@ -8,7 +8,10 @@ import { requireAuth } from "../middleware/auth.js";
 import { Business } from "../models/Business.js";
 import { AuditLog } from "../models/AuditLog.js";
 import { Invitation } from "../models/Invitation.js";
+import { PasswordReset } from "../models/PasswordReset.js";
 import { User } from "../models/User.js";
+import { sendPasswordResetEmail, notificationChannels } from "../services/notificationService.js";
+import { createPasswordReset, passwordResetHash } from "../services/passwordResetService.js";
 import { effectivePermissions, userCan } from "../services/permissions.js";
 import {
   clearRefreshCookie,
@@ -32,6 +35,8 @@ const registerSchema = z.object({
 });
 const loginSchema = z.object({ email, password: z.string().min(1).max(128) });
 const acceptInvitationSchema = z.object({ password });
+const forgotPasswordSchema = z.object({ email });
+const resetPasswordSchema = z.object({ password });
 const profileSchema = z.object({
   name: z.string().trim().min(2).max(100).optional(),
   businessName: z.string().trim().min(2).max(120).optional(),
@@ -134,6 +139,16 @@ function invitationView(invitation) {
     businessName: invitation.business?.name || "StockGuard workspace", expiresAt: invitation.expiresAt };
 }
 
+async function validPasswordReset(token) {
+  const reset = await PasswordReset.findOne({ tokenHash: passwordResetHash(token), usedAt: null }).select("+tokenHash");
+  if (!reset || reset.expiresAt <= new Date()) {
+    const error = new Error("This password reset link is invalid or has expired.");
+    error.statusCode = 410;
+    throw error;
+  }
+  return reset;
+}
+
 router.post("/register", async (request, response, next) => {
   let business;
   try {
@@ -172,6 +187,57 @@ router.post("/login", async (request, response, next) => {
   } catch (error) {
     return next(error);
   }
+});
+
+router.post("/password/forgot", async (request, response) => {
+  const data = parse(forgotPasswordSchema, request.body);
+  const emailAvailable = notificationChannels().emailConfigured;
+  const user = await User.findOne({ email: data.email, status: "active" });
+  if (user && emailAvailable) {
+    const created = await createPasswordReset({ business: user.business, user: user._id });
+    const delivery = await sendPasswordResetEmail({ user, resetUrl: created.resetUrl });
+    await AuditLog.create({ business: user.business, actor: user._id, actorName: user.name,
+      action: "password.reset_requested", targetType: "user", targetId: user._id.toString(),
+      targetLabel: user.email, severity: "security", metadata: { delivery: delivery.status },
+      ipAddress: String(request.ip || "").slice(0, 100), userAgent: String(request.get("user-agent") || "").slice(0, 300) });
+  }
+  response.json({
+    message: emailAvailable
+      ? "If an active account matches that email, a reset link has been sent."
+      : "Password recovery is ready, but email delivery is not configured. Ask a workspace administrator for a one-time reset link.",
+    delivery: emailAvailable ? "email" : "administrator",
+  });
+});
+
+router.get("/password/reset/:token", async (request, response) => {
+  const reset = await validPasswordReset(request.params.token);
+  const user = await User.findById(reset.user).select("name email status").lean();
+  if (!user || user.status !== "active") {
+    const error = new Error("This password reset link is no longer available.");
+    error.statusCode = 410;
+    throw error;
+  }
+  response.json({ reset: { email: user.email.replace(/(^.).*(@.*$)/, "$1***$2"), expiresAt: reset.expiresAt } });
+});
+
+router.post("/password/reset/:token", async (request, response) => {
+  const data = parse(resetPasswordSchema, request.body);
+  const reset = await validPasswordReset(request.params.token);
+  const user = await User.findOne({ _id: reset.user, status: "active" }).select("+tokenVersion");
+  if (!user) {
+    const error = new Error("This password reset link is no longer available.");
+    error.statusCode = 410;
+    throw error;
+  }
+  user.passwordHash = await bcrypt.hash(data.password, 12);
+  user.tokenVersion += 1;
+  reset.usedAt = new Date();
+  await Promise.all([user.save(), reset.save(), PasswordReset.deleteMany({ user: user._id, _id: { $ne: reset._id } })]);
+  await AuditLog.create({ business: user.business, actor: user._id, actorName: user.name,
+    action: "password.reset_completed", targetType: "user", targetId: user._id.toString(),
+    targetLabel: user.email, severity: "security", ipAddress: String(request.ip || "").slice(0, 100),
+    userAgent: String(request.get("user-agent") || "").slice(0, 300) });
+  response.json({ message: "Password updated. Sign in with your new password." });
 });
 
 // Native clients cannot rely on the web app's HttpOnly cookie jar. They store

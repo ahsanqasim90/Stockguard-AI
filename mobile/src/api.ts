@@ -24,7 +24,7 @@ export type Overview = {
   latestForecast: { productName: string; store?: string; model: string; forecastTotal: number; forecastRevenue: number; horizonDays: number; generatedAt?: string; inventoryPlan?: ForecastRun['inventoryPlan'] } | null;
   recommendations: RecommendationRecord[];
 };
-export type ImportRecord = { id: string; name: string; records: number; date: string; status: string };
+export type ImportRecord = { id: string; name: string; records: number; date: string; status: string; canDelete?: boolean };
 export type ReportRecord = { id: string; name: string; type: 'sales' | 'inventory' | 'forecast'; format: string; days?: number; filename: string; sizeBytes: number; createdAt: string };
 export type AdminUser = { id: string; name: string; email: string; role: string; status: string; lastLoginAt: string | null; createdAt: string; uploads: number; permissions: string[]; permissionsCustomized: boolean };
 export type AuditEntry = { id: string; action: string; actorName: string; targetType: string; targetLabel: string; severity: string; createdAt: string };
@@ -61,6 +61,13 @@ export async function login(email: string, password: string) {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }),
   });
   return saveSession(await readResponse<Session>(response));
+}
+
+export async function requestPasswordReset(email: string) {
+  const response = await fetch(`${API_URL}/auth/password/forgot`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }),
+  });
+  return readResponse<{ message: string; delivery: 'email' | 'administrator' }>(response);
 }
 
 async function refresh() {

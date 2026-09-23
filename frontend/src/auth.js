@@ -50,6 +50,20 @@ export async function register(account) {
   return saveSession(await apiRequest("/auth/register", { method: "POST", body: JSON.stringify(account) }, false));
 }
 
+export async function requestPasswordReset(email) {
+  return apiRequest("/auth/password/forgot", { method: "POST", body: JSON.stringify({ email }) }, false);
+}
+
+export async function inspectPasswordReset(token) {
+  return apiRequest(`/auth/password/reset/${encodeURIComponent(token)}`, {}, false);
+}
+
+export async function resetPassword(token, password) {
+  return apiRequest(`/auth/password/reset/${encodeURIComponent(token)}`, {
+    method: "POST", body: JSON.stringify({ password }),
+  }, false);
+}
+
 export async function loadInvitation(token) {
   return apiRequest(`/auth/invitations/${encodeURIComponent(token)}`, {}, false);
 }

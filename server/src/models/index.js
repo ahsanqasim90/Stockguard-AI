@@ -6,6 +6,7 @@ export { Inventory } from "./Inventory.js";
 export { ImportBatch } from "./ImportBatch.js";
 export { Invitation } from "./Invitation.js";
 export { Notification } from "./Notification.js";
+export { PasswordReset } from "./PasswordReset.js";
 export { PushDevice } from "./PushDevice.js";
 export { Product } from "./Product.js";
 export { Recommendation } from "./Recommendation.js";
