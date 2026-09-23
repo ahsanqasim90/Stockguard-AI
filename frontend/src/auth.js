@@ -11,6 +11,18 @@ function saveSession(session) {
   return session;
 }
 
+export function updateSessionUser(user) {
+  const current = getSession() || {};
+  saveSession({ ...current, user });
+  return user;
+}
+
+export async function changePassword(currentPassword, newPassword) {
+  return saveSession(await apiRequest("/auth/password/change", {
+    method: "POST", body: JSON.stringify({ currentPassword, newPassword }),
+  }, false));
+}
+
 export function clearSession() { localStorage.removeItem(sessionKey); }
 
 async function readResponse(response) {

@@ -37,8 +37,16 @@ const loginSchema = z.object({ email, password: z.string().min(1).max(128) });
 const acceptInvitationSchema = z.object({ password });
 const forgotPasswordSchema = z.object({ email });
 const resetPasswordSchema = z.object({ password });
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1).max(128),
+  newPassword: password,
+}).refine((value) => value.currentPassword !== value.newPassword, {
+  message: "New password must be different from the current password.",
+});
 const profileSchema = z.object({
   name: z.string().trim().min(2).max(100).optional(),
+  phone: z.string().trim().max(40).optional(),
+  bio: z.string().trim().max(500).optional(),
   businessName: z.string().trim().min(2).max(120).optional(),
   timezone: z.string().trim().min(2).max(80).optional(),
   currency: z.string().trim().min(3).max(3).transform((value) => value.toUpperCase()).optional(),
@@ -64,6 +72,8 @@ function publicUser(user) {
     id: user._id.toString(),
     name: user.name,
     email: user.email,
+    phone: user.phone || "",
+    bio: user.bio || "",
     role: user.role,
     status: user.status,
     lastLoginAt: user.lastLoginAt,
@@ -344,6 +354,8 @@ router.patch("/me", requireAuth, async (request, response) => {
   const data = parse(profileSchema, request.body);
   const user = request.auth.user;
   if (data.name) user.name = data.name;
+  if (data.phone !== undefined) user.phone = data.phone;
+  if (data.bio !== undefined) user.bio = data.bio;
   const businessFields = ["businessName", "timezone", "currency"].filter((field) => data[field] !== undefined);
   if (businessFields.length) {
     if (!userCan(user, "settings.manage")) {
@@ -357,8 +369,39 @@ router.patch("/me", requireAuth, async (request, response) => {
     await request.auth.business.save();
   }
   await user.save();
+  await AuditLog.create({ business: request.auth.business._id, actor: user._id, actorName: user.name,
+    action: "profile.updated", targetType: "user", targetId: user._id.toString(), targetLabel: user.email,
+    severity: "info", metadata: { fields: Object.keys(data) }, ipAddress: String(request.ip || "").slice(0, 100),
+    userAgent: String(request.get("user-agent") || "").slice(0, 300) });
   user.business = request.auth.business;
   response.json({ user: publicUser(user) });
+});
+
+async function changePassword(request) {
+  const data = parse(changePasswordSchema, request.body);
+  const user = await User.findOne({ _id: request.auth.user._id, status: "active" })
+    .select("+passwordHash +tokenVersion").populate("business");
+  if (!user || !await bcrypt.compare(data.currentPassword, user.passwordHash)) {
+    const error = new Error("Current password is incorrect.");
+    error.statusCode = 401;
+    throw error;
+  }
+  user.passwordHash = await bcrypt.hash(data.newPassword, 12);
+  user.tokenVersion += 1;
+  await user.save();
+  await AuditLog.create({ business: user.business._id, actor: user._id, actorName: user.name,
+    action: "password.changed", targetType: "user", targetId: user._id.toString(), targetLabel: user.email,
+    severity: "security", ipAddress: String(request.ip || "").slice(0, 100),
+    userAgent: String(request.get("user-agent") || "").slice(0, 300) });
+  return user;
+}
+
+router.post("/password/change", requireAuth, async (request, response) => {
+  return issueSession(response, await changePassword(request));
+});
+
+router.post("/mobile/password/change", requireAuth, async (request, response) => {
+  return issueMobileSession(response, await changePassword(request));
 });
 
 router.post("/logout", async (request, response) => {

@@ -62,6 +62,15 @@ try {
     body: JSON.stringify({ email, password }),
   });
   if (login.status !== 200) throw new Error(`Expected login 200, received ${login.status}.`);
+  const loginSession = await json(login);
+  const updatedProfile = await fetch(`${baseUrl}/me`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json", authorization: `Bearer ${loginSession.accessToken}` },
+    body: JSON.stringify({ name: "Updated Auth Test", phone: "+44 7700 900123", bio: "StockGuard QA profile" }),
+  });
+  const updatedProfileBody = await json(updatedProfile);
+  if (updatedProfileBody.user.name !== "Updated Auth Test" || updatedProfileBody.user.phone !== "+44 7700 900123"
+    || updatedProfileBody.user.bio !== "StockGuard QA profile") throw new Error("MongoDB profile update was not persisted.");
 
   const mobileLogin = await fetch(`${baseUrl}/mobile/login`, {
     method: "POST",
@@ -125,9 +134,26 @@ try {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, password: newPassword }),
   });
   if (newPasswordLogin.status !== 200) throw new Error("The new password was rejected after reset.");
+  const newPasswordSession = await json(newPasswordLogin);
+  const changedPassword = "Final-Test-Password-2026";
+  const wrongCurrentPassword = await fetch(`${baseUrl}/password/change`, {
+    method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${newPasswordSession.accessToken}` },
+    body: JSON.stringify({ currentPassword: "wrong-password", newPassword: changedPassword }),
+  });
+  if (wrongCurrentPassword.status !== 401) throw new Error("Password change accepted an incorrect current password.");
+  const changePassword = await fetch(`${baseUrl}/password/change`, {
+    method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${newPasswordSession.accessToken}` },
+    body: JSON.stringify({ currentPassword: newPassword, newPassword: changedPassword }),
+  });
+  if (changePassword.status !== 200) throw new Error(`Expected password change 200, received ${changePassword.status}.`);
+  const changedSession = await json(changePassword);
+  const revokedAfterChange = await fetch(`${baseUrl}/me`, { headers: { authorization: `Bearer ${newPasswordSession.accessToken}` } });
+  if (revokedAfterChange.status !== 401) throw new Error("Password change did not revoke the prior access token.");
+  const currentAfterChange = await fetch(`${baseUrl}/me`, { headers: { authorization: `Bearer ${changedSession.accessToken}` } });
+  if (currentAfterChange.status !== 200) throw new Error("New session returned by password change was rejected.");
 
   console.log(`${remoteBaseUrl ? "Live" : "Local"} MongoDB authentication integration check PASSED`);
-  console.log("Web/mobile sessions, logout invalidation, one-time password recovery and session revocation verified.");
+  console.log("Web/mobile sessions, MongoDB profile updates, password change, recovery and session revocation verified.");
 } finally {
   const createdUser = await models.User.findOne({ email }).select("business").lean().catch(() => null);
   businessId ||= createdUser?.business;

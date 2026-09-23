@@ -83,6 +83,11 @@ try {
   const protectedProfile = await fetch(`${baseUrl}/api/auth/me`);
   if (protectedProfile.status !== 401) throw new Error("Protected route check failed.");
 
+  const protectedPasswordChange = await fetch(`${baseUrl}/api/auth/password/change`, {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ currentPassword: "a", newPassword: "New-Password-2026" }),
+  });
+  if (protectedPasswordChange.status !== 401) throw new Error("Password change route protection check failed.");
+
   const protectedSettings = await fetch(`${baseUrl}/api/settings`);
   if (protectedSettings.status !== 401) throw new Error("Settings route protection check failed.");
 

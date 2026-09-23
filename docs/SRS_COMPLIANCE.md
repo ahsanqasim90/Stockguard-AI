@@ -35,6 +35,10 @@ operations that must be configured in MongoDB Atlas or Vercel.
 - Reports and business insights include saved revenue forecasts and replenishment
   recommendations.
 - Web and mobile use the same tenant-isolated MongoDB data and Express API.
+- Web and mobile profiles persist name, phone, bio and permitted workspace fields
+  through `PATCH /api/auth/me`; profile updates are added to the audit trail.
+- Authenticated password changes verify the current bcrypt password, rotate the
+  session version, revoke older web/mobile sessions and create a security audit event.
 
 ## Operational deployment checklist
 

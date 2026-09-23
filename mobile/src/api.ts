@@ -6,7 +6,7 @@ const REFRESH_KEY = 'stockguard_refresh_token';
 export type NotificationSettings = { uploadCompleted: boolean; lowStock: boolean; criticalInventory: boolean; forecastReady: boolean; weeklySummary: boolean; demandSpike: boolean; newLogin: boolean; email: boolean; push: boolean };
 export type NotificationRecord = { id: string; type: 'upload_completed' | 'forecast_ready' | 'low_stock' | 'critical_inventory'; title: string; message: string; severity: 'info' | 'success' | 'warning' | 'critical'; link: string; readAt: string | null; createdAt: string; delivery: { email: { status: string; error?: string }; push: { status: string; error?: string } } };
 export type User = {
-  id: string; name: string; email: string; role: string; status?: string; lastLoginAt?: string | null; permissions?: string[]; permissionsCustomized?: boolean;
+  id: string; name: string; email: string; phone?: string; bio?: string; role: string; status?: string; lastLoginAt?: string | null; permissions?: string[]; permissionsCustomized?: boolean;
   preferences?: { notifications?: Partial<NotificationSettings>; theme?: 'dark' | 'system' };
   business: { id?: string; name: string; timezone?: string; currency: string } | null;
 };
@@ -122,4 +122,9 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
 
 export function jsonBody(value: unknown, method: 'POST' | 'PATCH' = 'POST'): RequestInit {
   return { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(value) };
+}
+
+export async function changeMobilePassword(currentPassword: string, newPassword: string) {
+  const session = await api<Session>('/auth/mobile/password/change', jsonBody({ currentPassword, newPassword }));
+  return saveSession(session);
 }

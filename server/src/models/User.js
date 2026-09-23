@@ -5,6 +5,8 @@ const userSchema = new mongoose.Schema({
   business: { type: objectId, ref: "Business", default: null, index: true },
   name: { type: String, required: true, trim: true, maxlength: 100 },
   email: { type: String, required: true, trim: true, lowercase: true, unique: true, index: true },
+  phone: { type: String, trim: true, maxlength: 40, default: "" },
+  bio: { type: String, trim: true, maxlength: 500, default: "" },
   passwordHash: { type: String, required: true, select: false },
   role: {
     type: String,
