@@ -1,0 +1,43 @@
+{
+  "result": "passed",
+  "testedAt": "2026-09-24T07:54:40.759Z",
+  "target": "https://stockguard-ai-ten.vercel.app/api",
+  "fixture": {
+    "csvRows": 10000,
+    "csvBytes": 656606
+  },
+  "timingsMs": {
+    "coldStartLogin": 1146,
+    "login": 855,
+    "csvValidation": 61,
+    "coldStartDashboard": 1944,
+    "dashboard": 843,
+    "forecast30Day": 2224,
+    "virtualUsers100": {
+      "rampUpSeconds": 10,
+      "min": 184,
+      "average": 259,
+      "p95": 832,
+      "max": 1210,
+      "errors": 0,
+      "statuses": {
+        "200": 100
+      }
+    }
+  },
+  "forecast": {
+    "series": "LAHORE-01/SG-FOOTBALL-5",
+    "observations": 100,
+    "selectedModel": "seasonal_naive",
+    "predictions": 30
+  },
+  "thresholds": {
+    "loginWithin3Seconds": true,
+    "csvValidationWithin5Seconds": true,
+    "dashboardWithin5Seconds": true,
+    "forecastWithin10Seconds": true,
+    "forecastWithin30Seconds": true,
+    "oneHundredUserLoadP95Within3Seconds": true,
+    "zeroConcurrentErrors": true
+  }
+}

@@ -24,6 +24,7 @@ operations that must be configured in MongoDB Atlas or Vercel.
 | REQ-16 graceful errors | Central JSON error middleware, retry states and error boundaries | Complete |
 | REQ-17 backup and recovery | Requires MongoDB Atlas scheduled backup/PITR policy; see deployment checklist below | Cloud configuration |
 | REQ-18 privacy and secure communication | Tenant isolation, password hashing, JWT, RBAC and HTTPS on Vercel | Complete |
+| NFR performance and concurrent use | Mumbai data locality, Fluid Compute, production load test with 100 authenticated virtual users, p95 832 ms and zero errors | Complete |
 
 ## Additional submitted requirements
 

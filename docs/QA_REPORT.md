@@ -19,6 +19,7 @@ Verified on 24 September 2026 against the application source and the isolated
 | Web | Vite production build | Passed |
 | Mobile | TypeScript validation and Expo Android production export | Passed |
 | Dependencies | Production server audit (including Nodemailer 10.0.10) | 0 vulnerabilities |
+| Performance | Production load, dashboard, login, CSV and forecast thresholds | Passed |
 | Backup | AES-256-GCM encrypted backup codec and tamper detection | Passed |
 | Recovery | 1,055 documents across 16 collections restored and verified | Passed in 13.914 seconds |
 
@@ -29,6 +30,17 @@ Vercel API. It contains 8 products, 800 sales rows, a complete 30-day forecast,
 3 downloadable reports, 14 notifications and 4 replenishment recommendations.
 The smoke test also verified MongoDB connectivity, Python ML health, the default
 30-day horizon, administration data and the workspace audit trail.
+
+## Production performance evidence
+
+The production deployment runs its Node and Python functions in Vercel's Mumbai
+region beside the Atlas `ap-south-1` database, with Fluid Compute enabled. The
+repeatable performance check passed with 100 authenticated virtual users over a
+10-second ramp: all 100 requests returned HTTP 200, average response time was
+259 ms, p95 was 832 ms and the maximum was 1,210 ms. Normal login completed in
+855 ms, the dashboard in 843 ms, a live 30-day forecast in 2,224 ms, and local
+validation of a 10,000-row CSV in 61 ms. Full machine-readable results are saved
+in `docs/evidence/SRS-performance-evidence.json`.
 
 ## Security behaviour verified
 
