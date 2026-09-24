@@ -13,6 +13,7 @@ frontend/.npm-cache/
 .npm-cache-eas/
 .eas-runtime/
 server/node_modules/
+server/.npm-cache/
 server/.env
 server/coverage/
 server/uploads/
@@ -20,4 +21,5 @@ server/uploads/
 archive.zip
 *.log
 .vercel/
+mobile/dist-presentation-check/
 tmp/

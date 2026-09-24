@@ -1,6 +1,6 @@
 # StockGuard AI final QA report
 
-Verified on 23 September 2026 against the application source and the isolated
+Verified on 24 September 2026 against the application source and the isolated
 `stockguard_ai` MongoDB Atlas database.
 
 ## Automated checks
@@ -17,7 +17,16 @@ Verified on 23 September 2026 against the application source and the isolated
 | Analytics | Date windows, revenue, categories, low stock and tenant isolation | Passed |
 | Python models | 30-day Linear Regression, ARIMA and Random Forest with MAE/RMSE | Passed |
 | Web | Vite production build | Passed |
-| Mobile | TypeScript validation | Passed |
+| Mobile | TypeScript validation and Expo Android production export | Passed |
+| Dependencies | Production server audit (including Nodemailer 10.0.10) | 0 vulnerabilities |
+
+## Presentation smoke test
+
+The dedicated production demo workspace was checked end to end through the live
+Vercel API. It contains 8 products, 800 sales rows, a complete 30-day forecast,
+3 downloadable reports, 14 notifications and 4 replenishment recommendations.
+The smoke test also verified MongoDB connectivity, Python ML health, the default
+30-day horizon, administration data and the workspace audit trail.
 
 ## Security behaviour verified
 

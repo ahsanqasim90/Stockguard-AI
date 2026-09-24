@@ -74,7 +74,7 @@ export default function LoginPage() {
         <button className="login-submit" type="submit" disabled={loading}>{loading ? "Please wait…" : mode === "register" ? "Create account" : mode === "forgot" ? "Request reset link" : "Sign in"} {!loading && <ArrowRight size={17} />}</button>
         {mode === "forgot" && <button className="login-back" type="button" onClick={() => changeMode("login")}>Back to sign in</button>}
         <div className="demo-box"><b>MongoDB-backed access</b><span>{mode === "register" ? "Create the first owner account after Atlas is connected." : "Use the account you registered for this business."}</span></div>
-        <p className="oauth-note">Google and Microsoft sign-in will be added after the core application workflow.</p>
+        <p className="oauth-note">Secure email and password authentication is enabled for the FYP presentation.</p>
       </form>
     </section>
   </div>;

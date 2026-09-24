@@ -25,13 +25,13 @@ const capabilities = [
   [TrendingUp, "Product-level analytics", "Inspect daily demand, peak days and trends for every supported store-product series."],
   [Warehouse, "Smart inventory", "Convert forecasts into reorder points, safety stock and recommended order quantities."],
   [BarChart3, "Decision dashboards", "Clear KPIs, charts and tables make model output useful to owners and operations teams."],
-  [LockKeyhole, "Role-based security", "The MERN application will protect business data with JWT authentication and access roles."],
+  [LockKeyhole, "Role-based security", "The MERN application protects business data with JWT authentication and access roles."],
   [FileUp, "CSV data workflow", "Upload historical sales, validate the file and prepare structured data for forecasting."],
 ];
 
 const faqItems = [
   ["How are forecasting models selected?", "Each run backtests Linear Regression, ARIMA, Random Forest and the available XGBoost or seasonal candidate on the same holdout, then selects the lowest MAE."],
-  ["What technology stack does StockGuard AI use?", "The proposal architecture uses React, Node.js, Express and MongoDB, with a separate Python machine-learning service. The mobile application will use React Native."],
+  ["What technology stack does StockGuard AI use?", "The platform uses React, React Native, Node.js, Express and MongoDB, with a separate Python machine-learning service."],
   ["Can I import existing sales data?", "Yes. The authenticated web and mobile workflow accepts validated CSV sales history and runs live business forecasts."],
   ["How does inventory planning work?", "The dashboard combines forecast demand, supplier lead time and a safety buffer to calculate reorder points and suggested order quantities."],
   ["Does it support multiple stores and products?", "Yes. The current forecast bundle covers 137 stores and 11,626 eligible store-product series."],
