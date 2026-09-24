@@ -19,6 +19,8 @@ Verified on 24 September 2026 against the application source and the isolated
 | Web | Vite production build | Passed |
 | Mobile | TypeScript validation and Expo Android production export | Passed |
 | Dependencies | Production server audit (including Nodemailer 10.0.10) | 0 vulnerabilities |
+| Backup | AES-256-GCM encrypted backup codec and tamper detection | Passed |
+| Recovery | 1,055 documents across 16 collections restored and verified | Passed in 13.914 seconds |
 
 ## Presentation smoke test
 
@@ -40,7 +42,7 @@ The smoke test also verified MongoDB connectivity, Python ML health, the default
 
 ## Production operations
 
-The application is ready for the FYP demo after deployment. Email delivery still
-requires SMTP environment variables, and the production Atlas project should have
-scheduled backup/PITR enabled and restore-tested by the account owner. These are
-cloud account controls rather than missing application code.
+The application includes a scheduled encrypted backup and restore-verification
+workflow. The workflow requires two encrypted GitHub repository secrets before its
+daily schedule can run. Email delivery still requires SMTP environment variables;
+in-app notifications work independently of SMTP.

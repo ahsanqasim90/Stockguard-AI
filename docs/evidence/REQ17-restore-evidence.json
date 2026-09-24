@@ -1,0 +1,128 @@
+{
+  "result": "passed",
+  "sourceDatabase": "stockguard_ai",
+  "targetDatabase": "stockguard_ai",
+  "restoreMode": "isolated-collection-prefix",
+  "targetCollectionPrefix": "restore_verify_localdrill3__",
+  "backupCreatedAt": "2026-09-24T07:26:53.022Z",
+  "verifiedAt": "2026-09-24T07:27:08.599Z",
+  "backupSha256": "004f4b890b015e978cee72d21c6234fcfcb474e111dc317fdabf2fc17549e773",
+  "recoveryTimeMs": 13914,
+  "recoveryWithinTenMinutes": true,
+  "totalDocuments": 1055,
+  "collections": [
+    {
+      "name": "auditlogs",
+      "restoredAs": "restore_verify_localdrill3__auditlogs",
+      "expected": 52,
+      "restored": 52,
+      "verified": true
+    },
+    {
+      "name": "businesses",
+      "restoredAs": "restore_verify_localdrill3__businesses",
+      "expected": 2,
+      "restored": 2,
+      "verified": true
+    },
+    {
+      "name": "forecastruns",
+      "restoredAs": "restore_verify_localdrill3__forecastruns",
+      "expected": 4,
+      "restored": 4,
+      "verified": true
+    },
+    {
+      "name": "forecasts",
+      "restoredAs": "restore_verify_localdrill3__forecasts",
+      "expected": 120,
+      "restored": 120,
+      "verified": true
+    },
+    {
+      "name": "importbatches",
+      "restoredAs": "restore_verify_localdrill3__importbatches",
+      "expected": 1,
+      "restored": 1,
+      "verified": true
+    },
+    {
+      "name": "inventories",
+      "restoredAs": "restore_verify_localdrill3__inventories",
+      "expected": 8,
+      "restored": 8,
+      "verified": true
+    },
+    {
+      "name": "invitations",
+      "restoredAs": "restore_verify_localdrill3__invitations",
+      "expected": 0,
+      "restored": 0,
+      "verified": true
+    },
+    {
+      "name": "notifications",
+      "restoredAs": "restore_verify_localdrill3__notifications",
+      "expected": 45,
+      "restored": 45,
+      "verified": true
+    },
+    {
+      "name": "passwordresets",
+      "restoredAs": "restore_verify_localdrill3__passwordresets",
+      "expected": 0,
+      "restored": 0,
+      "verified": true
+    },
+    {
+      "name": "products",
+      "restoredAs": "restore_verify_localdrill3__products",
+      "expected": 8,
+      "restored": 8,
+      "verified": true
+    },
+    {
+      "name": "pushdevices",
+      "restoredAs": "restore_verify_localdrill3__pushdevices",
+      "expected": 0,
+      "restored": 0,
+      "verified": true
+    },
+    {
+      "name": "recommendations",
+      "restoredAs": "restore_verify_localdrill3__recommendations",
+      "expected": 4,
+      "restored": 4,
+      "verified": true
+    },
+    {
+      "name": "reports",
+      "restoredAs": "restore_verify_localdrill3__reports",
+      "expected": 3,
+      "restored": 3,
+      "verified": true
+    },
+    {
+      "name": "sales",
+      "restoredAs": "restore_verify_localdrill3__sales",
+      "expected": 800,
+      "restored": 800,
+      "verified": true
+    },
+    {
+      "name": "stores",
+      "restoredAs": "restore_verify_localdrill3__stores",
+      "expected": 6,
+      "restored": 6,
+      "verified": true
+    },
+    {
+      "name": "users",
+      "restoredAs": "restore_verify_localdrill3__users",
+      "expected": 2,
+      "restored": 2,
+      "verified": true
+    }
+  ],
+  "targetDroppedAfterVerification": true
+}

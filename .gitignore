@@ -15,8 +15,10 @@ frontend/.npm-cache/
 server/node_modules/
 server/.npm-cache/
 server/.env
+server/.backup-key
 server/coverage/
 server/uploads/
+server/backups/
 .runtime/
 archive.zip
 *.log

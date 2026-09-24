@@ -1,0 +1,47 @@
+name: Daily encrypted StockGuard backup
+
+on:
+  schedule:
+    - cron: "15 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      MONGODB_URI: ${{ secrets.STOCKGUARD_BACKUP_MONGODB_URI }}
+      STOCKGUARD_BACKUP_KEY: ${{ secrets.STOCKGUARD_BACKUP_KEY }}
+      STOCKGUARD_BACKUP_DIR: backups
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci --prefix server
+      - name: Require backup secrets
+        shell: bash
+        run: |
+          test -n "$MONGODB_URI" || (echo "Missing STOCKGUARD_BACKUP_MONGODB_URI" && exit 1)
+          test -n "$STOCKGUARD_BACKUP_KEY" || (echo "Missing STOCKGUARD_BACKUP_KEY" && exit 1)
+      - run: npm run backup:create --prefix server
+      - name: Verify restore and measure recovery time
+        shell: bash
+        run: |
+          export STOCKGUARD_BACKUP_FILE="$(ls -t server/backups/*.sgbackup | head -n 1)"
+          export STOCKGUARD_RESTORE_URI="$MONGODB_URI"
+          export STOCKGUARD_RESTORE_COLLECTION_PREFIX="restore_verify_${GITHUB_RUN_ID}__"
+          export STOCKGUARD_DROP_RESTORE_AFTER_VERIFY=true
+          export STOCKGUARD_RESTORE_EVIDENCE="server/backups/REQ17-restore-evidence.json"
+          npm run backup:verify-restore --prefix server
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stockguard-encrypted-backup-${{ github.run_id }}
+          path: server/backups/
+          if-no-files-found: error
+          retention-days: 30

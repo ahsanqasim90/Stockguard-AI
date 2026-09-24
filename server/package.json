@@ -14,7 +14,10 @@
     "check:forecasts-db": "node scripts/check-forecasts-db.js",
     "check:analytics-db": "node scripts/check-analytics-db.js",
     "seed:demo": "node scripts/seed-presentation-demo.js",
-    "check:demo-live": "node scripts/check-presentation-demo.js"
+    "check:demo-live": "node scripts/check-presentation-demo.js",
+    "backup:create": "node scripts/create-backup.js",
+    "backup:verify-restore": "node scripts/verify-backup-restore.js",
+    "check:backup": "node scripts/check-backup.js"
   },
   "engines": {
     "node": "24.x"
