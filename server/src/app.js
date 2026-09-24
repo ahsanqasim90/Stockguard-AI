@@ -45,7 +45,9 @@ app.use(
   "/api",
   rateLimit({
     windowMs: 15 * 60 * 1000,
-    limit: 300,
+    // Dashboard, mobile and presentation clients legitimately fan out into
+    // multiple API calls. Authentication endpoints have a tighter limiter.
+    limit: 1_200,
     standardHeaders: "draft-8",
     legacyHeaders: false,
   }),

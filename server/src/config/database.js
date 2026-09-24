@@ -12,7 +12,7 @@ export async function connectDatabase() {
 
   await mongoose.connect(env.mongodbUri, {
     serverSelectionTimeoutMS: 8_000,
-    maxPoolSize: 10,
+    maxPoolSize: 20,
     autoIndex: env.nodeEnv !== "production",
   });
 

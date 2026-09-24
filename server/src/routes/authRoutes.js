@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 
 import bcrypt from "bcryptjs";
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import { z } from "zod";
 
 import { requireAuth } from "../middleware/auth.js";
@@ -24,6 +25,14 @@ import {
 } from "../services/tokenService.js";
 
 const router = Router();
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: { message: "Too many unsuccessful sign-in attempts. Try again in 15 minutes." },
+});
 
 const email = z.string().trim().toLowerCase().email("Enter a valid email address.");
 const password = z.string().min(8, "Password must contain at least 8 characters.").max(128);
@@ -191,7 +200,7 @@ router.post("/register", async (request, response, next) => {
   }
 });
 
-router.post("/login", async (request, response, next) => {
+router.post("/login", loginLimiter, async (request, response, next) => {
   try {
     return issueSession(response, await authenticateCredentials(request.body));
   } catch (error) {
@@ -252,7 +261,7 @@ router.post("/password/reset/:token", async (request, response) => {
 
 // Native clients cannot rely on the web app's HttpOnly cookie jar. They store
 // this refresh token in the OS secure store and send it only to these endpoints.
-router.post("/mobile/login", async (request, response, next) => {
+router.post("/mobile/login", loginLimiter, async (request, response, next) => {
   try {
     return issueMobileSession(response, await authenticateCredentials(request.body));
   } catch (error) {

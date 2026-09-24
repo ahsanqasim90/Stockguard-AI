@@ -7,8 +7,39 @@ import { Store } from "../models/Store.js";
 
 const isoDay = (value) => value ? new Date(value).toISOString().slice(0, 10) : null;
 const roundMoney = (value) => Math.round(value * 100) / 100;
+const analyticsCache = new Map();
+const analyticsCacheMs = 15_000;
+
+function cacheKey(business, days) {
+  return `${business.toString()}:${days}`;
+}
+
+export function clearBusinessAnalyticsCache(business) {
+  const prefix = `${business.toString()}:`;
+  for (const key of analyticsCache.keys()) {
+    if (key.startsWith(prefix)) analyticsCache.delete(key);
+  }
+}
 
 export async function getBusinessAnalytics(business, days) {
+  const key = cacheKey(business, days);
+  const cached = analyticsCache.get(key);
+  if (cached?.promise) return cached.promise;
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+
+  const promise = buildBusinessAnalytics(business, days);
+  analyticsCache.set(key, { promise, expiresAt: Date.now() + analyticsCacheMs });
+  try {
+    const value = await promise;
+    analyticsCache.set(key, { value, expiresAt: Date.now() + analyticsCacheMs });
+    return value;
+  } catch (error) {
+    analyticsCache.delete(key);
+    throw error;
+  }
+}
+
+async function buildBusinessAnalytics(business, days) {
   const latest = await Sale.findOne({ business }).sort({ date: -1 }).select("date").lean();
   const end = latest?.date || null;
   const start = end ? new Date(end.getTime() - (days - 1) * 86400000) : null;

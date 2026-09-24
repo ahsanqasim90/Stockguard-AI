@@ -2,6 +2,27 @@ import { User } from "../models/User.js";
 import { verifyAccessToken } from "../services/tokenService.js";
 import { userCan } from "../services/permissions.js";
 
+// A dashboard opens several authenticated endpoints at once. Coalesce identical
+// session lookups while the MongoDB query is in flight so one page load (or a
+// short burst of API calls) does not repeat the same user + business read.
+// Results are deliberately not cached after the query settles: suspension,
+// permission and token-version changes remain effective on the next request.
+const pendingSessionLookups = new Map();
+
+async function loadSessionUser(payload) {
+  const key = `${payload.sub}:${payload.version}`;
+  const existing = pendingSessionLookups.get(key);
+  if (existing) return existing;
+
+  const lookup = User.findById(payload.sub).select("+tokenVersion").populate("business").exec();
+  pendingSessionLookups.set(key, lookup);
+  try {
+    return await lookup;
+  } finally {
+    if (pendingSessionLookups.get(key) === lookup) pendingSessionLookups.delete(key);
+  }
+}
+
 function unauthorized(message = "Authentication is required.") {
   const error = new Error(message);
   error.statusCode = 401;
@@ -14,7 +35,7 @@ export async function requireAuth(request, _response, next) {
     if (scheme !== "Bearer" || !token) throw unauthorized();
 
     const payload = verifyAccessToken(token);
-    const user = await User.findById(payload.sub).select("+tokenVersion").populate("business");
+    const user = await loadSessionUser(payload);
     if (!user || user.status !== "active" || user.tokenVersion !== payload.version) {
       throw unauthorized("This session is no longer valid.");
     }
