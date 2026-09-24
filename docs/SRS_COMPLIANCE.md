@@ -17,7 +17,7 @@ operations that must be configured in MongoDB Atlas or Vercel.
 | REQ-9 product management | Web/mobile/API create, update, remove, inventory sync | Complete |
 | REQ-10 revenue and replenishment insight | Revenue estimate plus lead-time, variability, safety stock, target stock and order quantity | Complete |
 | REQ-11 responsive analytics | MongoDB aggregation endpoints and responsive React dashboard | Complete |
-| REQ-12 operational alerts | Upload, forecast, low-stock and critical inventory in-app/email/push pipeline | Complete |
+| REQ-12 operational alerts | Immediate under-10-second forecast estimate plus upload, forecast, low-stock and critical inventory in-app/email/push pipeline | Complete |
 | REQ-13 administration | Invitations, user edits, suspension, roles, custom permissions and service activity | Complete |
 | REQ-14 audit retention | Login/administration/data/forecast events; one-year TTL exceeds 90-day requirement | Complete |
 | REQ-15 role-based access | Owner/admin/manager/analyst/staff permission sets and route middleware | Complete |
@@ -25,6 +25,8 @@ operations that must be configured in MongoDB Atlas or Vercel.
 | REQ-17 backup and recovery | AES-256-GCM daily workflow, tamper check, isolated restore verification, 1,055-document restore drill | Application complete; scheduler activation pending |
 | REQ-18 privacy and secure communication | Tenant isolation, password hashing, JWT, RBAC and HTTPS on Vercel | Complete |
 | NFR performance and concurrent use | Mumbai data locality, Fluid Compute, production load test with 100 authenticated virtual users, p95 832 ms and zero errors | Complete |
+| NFR usability and onboarding | Web/mobile Quick Start screens, 15-minute user guide and actionable recovery instructions | Complete |
+| NFR scalability and extensibility | Candidate-model pipeline, tenant-indexed MongoDB schemas and Vercel Fluid Compute concurrency | Complete |
 
 ## Additional submitted requirements
 

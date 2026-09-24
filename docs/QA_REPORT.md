@@ -20,6 +20,7 @@ Verified on 24 September 2026 against the application source and the isolated
 | Mobile | TypeScript validation and Expo Android production export | Passed |
 | Dependencies | Production server audit (including Nodemailer 10.0.10) | 0 vulnerabilities |
 | Performance | Production load, dashboard, login, CSV and forecast thresholds | Passed |
+| Usability | Web/mobile Quick Start, forecast ETA and 15-minute recovery guide | Passed |
 | Backup | AES-256-GCM encrypted backup codec and tamper detection | Passed |
 | Recovery | 1,055 documents across 16 collections restored and verified | Passed in 13.914 seconds |
 
