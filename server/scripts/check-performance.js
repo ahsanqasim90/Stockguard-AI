@@ -37,8 +37,11 @@ function tenThousandRowCsv() {
 }
 
 await request("/health");
-const login = await request("/auth/mobile/login", { method: "POST", headers: { "content-type": "application/json" },
-  body: JSON.stringify({ email, password }) });
+const loginOptions = { method: "POST", headers: { "content-type": "application/json" },
+  body: JSON.stringify({ email, password }) };
+const coldLogin = await request("/auth/mobile/login", loginOptions);
+if (!coldLogin.response.ok || !coldLogin.body.accessToken) throw new Error(`Performance warm-up login failed (${coldLogin.response.status}).`);
+const login = await request("/auth/mobile/login", loginOptions);
 if (!login.response.ok || !login.body.accessToken) throw new Error(`Performance login failed (${login.response.status}).`);
 const token = login.body.accessToken;
 const headers = { authorization: `Bearer ${token}` };
@@ -50,14 +53,17 @@ const parsed = parseSalesCsv(csv);
 const csvValidationMs = performance.now() - csvStarted;
 if (parsed.length !== 10_000) throw new Error("The 10,000-row CSV fixture did not parse completely.");
 
-const dashboardStarted = performance.now();
-const dashboardResponses = await Promise.all([
-  request("/analytics/overview?days=90", { headers }),
-  request("/products", { headers }),
-  request("/forecasts/latest", { headers }),
-  request("/recommendations", { headers }),
+const dashboardRequests = () => Promise.all([
+  request("/analytics/overview?days=90", { headers }), request("/products", { headers }),
+  request("/forecasts/latest", { headers }), request("/recommendations", { headers }),
   request("/notifications?limit=20", { headers }),
 ]);
+const coldDashboardStarted = performance.now();
+const coldDashboardResponses = await dashboardRequests();
+const coldDashboardLoadMs = performance.now() - coldDashboardStarted;
+if (coldDashboardResponses.some((item) => !item.response.ok)) throw new Error("A dashboard endpoint failed during warm-up.");
+const dashboardStarted = performance.now();
+const dashboardResponses = await dashboardRequests();
 const dashboardLoadMs = performance.now() - dashboardStarted;
 if (dashboardResponses.some((item) => !item.response.ok)) throw new Error("A dashboard endpoint failed during the performance check.");
 
@@ -89,8 +95,10 @@ const evidence = {
   target: baseUrl,
   fixture: { csvRows: parsed.length, csvBytes: Buffer.byteLength(csv) },
   timingsMs: {
+    coldStartLogin: Math.round(coldLogin.durationMs),
     login: Math.round(login.durationMs),
     csvValidation: Math.round(csvValidationMs),
+    coldStartDashboard: Math.round(coldDashboardLoadMs),
     dashboard: Math.round(dashboardLoadMs),
     forecast30Day: Math.round(forecast.durationMs),
     concurrent100: {

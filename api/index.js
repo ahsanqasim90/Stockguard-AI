@@ -3,6 +3,23 @@ import { connectDatabase } from "../server/src/config/database.js";
 
 let connectionPromise;
 
+async function connectWithRetry() {
+  let lastError;
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      return await connectDatabase();
+    } catch (error) {
+      lastError = error;
+      if (attempt === 2) throw error;
+      // Atlas can occasionally reject a TLS handshake while a new serverless
+      // instance is opening. One short, bounded retry prevents a transient cold
+      // start from becoming a user-visible 503.
+      await new Promise((resolve) => setTimeout(resolve, 200 + Math.floor(Math.random() * 200)));
+    }
+  }
+  throw lastError;
+}
+
 function databaseErrorDetails(error) {
   const servers = error?.reason?.servers;
   const serverErrors = servers instanceof Map
@@ -26,7 +43,7 @@ function databaseErrorDetails(error) {
 export default async function handler(request, response) {
   try {
     if (!connectionPromise) {
-      connectionPromise = connectDatabase().catch((error) => {
+      connectionPromise = connectWithRetry().catch((error) => {
         connectionPromise = undefined;
         throw error;
       });
