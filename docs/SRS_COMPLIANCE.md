@@ -22,7 +22,7 @@ operations that must be configured in MongoDB Atlas or Vercel.
 | REQ-14 audit retention | Login/administration/data/forecast events; one-year TTL exceeds 90-day requirement | Complete |
 | REQ-15 role-based access | Owner/admin/manager/analyst/staff permission sets and route middleware | Complete |
 | REQ-16 graceful errors | Central JSON error middleware, retry states and error boundaries | Complete |
-| REQ-17 backup and recovery | Requires MongoDB Atlas scheduled backup/PITR policy; see deployment checklist below | Cloud configuration |
+| REQ-17 backup and recovery | AES-256-GCM daily workflow, tamper check, isolated restore verification, 1,055-document restore drill | Application complete; scheduler activation pending |
 | REQ-18 privacy and secure communication | Tenant isolation, password hashing, JWT, RBAC and HTTPS on Vercel | Complete |
 | NFR performance and concurrent use | Mumbai data locality, Fluid Compute, production load test with 100 authenticated virtual users, p95 832 ms and zero errors | Complete |
 
@@ -46,10 +46,12 @@ operations that must be configured in MongoDB Atlas or Vercel.
 These controls live outside the application repository and must be enabled for the
 production account:
 
-1. Enable MongoDB Atlas continuous backup or daily snapshots with at least 24-hour
-   frequency, and retain enough restore points to meet the university recovery claim.
-2. Perform a test restore into a separate temporary cluster; do not restore over the
-   production database during verification.
+1. Add the StockGuard-only MongoDB URI and generated backup encryption key as the
+   two encrypted GitHub repository secrets documented in `docs/BACKUP_RECOVERY.md`,
+   then run the daily-backup workflow once. The restore drill already passed against
+   isolated temporary collections and removed them afterward.
+2. Optionally enable Atlas continuous backup/PITR in addition to the repository's
+   encrypted daily snapshot workflow if the production plan supports it.
 3. Configure SMTP variables in Vercel to deliver password reset and alert emails.
 4. Keep Vercel HTTPS enabled and restrict MongoDB network access to required clients.
 5. Run the integration checks after every production deployment and remove their
