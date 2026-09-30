@@ -33,11 +33,11 @@ jobs:
       - name: Verify restore and measure recovery time
         shell: bash
         run: |
-          export STOCKGUARD_BACKUP_FILE="$(ls -t server/backups/*.sgbackup | head -n 1)"
+          export STOCKGUARD_BACKUP_FILE="$(ls -t "$GITHUB_WORKSPACE"/server/backups/*.sgbackup | head -n 1)"
           export STOCKGUARD_RESTORE_URI="$MONGODB_URI"
           export STOCKGUARD_RESTORE_COLLECTION_PREFIX="restore_verify_${GITHUB_RUN_ID}__"
           export STOCKGUARD_DROP_RESTORE_AFTER_VERIFY=true
-          export STOCKGUARD_RESTORE_EVIDENCE="server/backups/REQ17-restore-evidence.json"
+          export STOCKGUARD_RESTORE_EVIDENCE="$GITHUB_WORKSPACE/server/backups/REQ17-restore-evidence.json"
           npm run backup:verify-restore --prefix server
       - uses: actions/upload-artifact@v4
         with:
