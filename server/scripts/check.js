@@ -70,7 +70,9 @@ try {
   const health = await fetch(`${baseUrl}/api/health`);
   const healthBody = await health.json();
   if (health.status !== 200 || healthBody.productionModel?.model !== "global_xgboost"
-    || healthBody.productionModel?.available !== true) {
+    || healthBody.productionModel?.available !== true
+    || typeof healthBody.notifications?.emailConfigured !== "boolean"
+    || healthBody.notifications?.pushConfigured !== true) {
     throw new Error("Production model health check failed.");
   }
   const invalidRegistration = await fetch(`${baseUrl}/api/auth/register`, {

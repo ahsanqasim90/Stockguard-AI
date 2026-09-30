@@ -5,6 +5,7 @@ import { env } from "../config/env.js";
 import { FORECAST_HORIZONS } from "../services/businessForecast.js";
 import { productionModelStatus } from "../services/xgboostRuntime.js";
 import { pythonMlStatus } from "../services/pythonMlService.js";
+import { notificationChannels } from "../services/notificationService.js";
 
 const router = Router();
 
@@ -25,6 +26,7 @@ router.get("/", async (_request, response) => {
     },
     productionModel: productionModelStatus(),
     pythonMl,
+    notifications: notificationChannels(),
   });
 });
 

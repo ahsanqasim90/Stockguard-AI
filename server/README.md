@@ -80,6 +80,15 @@ In-app notifications work without another provider. To deliver email, configure
 Mobile push uses Expo Push Service; the mobile app registers its EAS project token.
 `EXPO_ACCESS_TOKEN` is only required when push access security is enabled in Expo.
 
+Verify the SMTP connection without exposing credentials:
+
+```powershell
+npm.cmd --prefix server run check:email
+```
+
+To send one real delivery test, also set `SMTP_TEST_TO` to an inbox you control.
+The command prints only connection/delivery status and the provider message ID.
+
 Permission checks are enforced on product, import, forecast, report, analytics,
 settings, audit and administration routes. Invitation tokens are stored only as
 SHA-256 hashes. The raw token appears once in the generated link for the

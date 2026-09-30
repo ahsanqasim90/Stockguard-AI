@@ -18,7 +18,8 @@
     "backup:create": "node scripts/create-backup.js",
     "backup:verify-restore": "node scripts/verify-backup-restore.js",
     "check:backup": "node scripts/check-backup.js",
-    "check:performance": "node scripts/check-performance.js"
+    "check:performance": "node scripts/check-performance.js",
+    "check:email": "node scripts/check-email.js"
   },
   "engines": {
     "node": "24.x"

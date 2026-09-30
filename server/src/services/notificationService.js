@@ -102,6 +102,26 @@ export function notificationChannels() {
   return { emailConfigured: emailConfigured(), pushConfigured: true };
 }
 
+export async function verifyEmailDelivery({ sendTo = "" } = {}) {
+  if (!emailConfigured()) {
+    return { configured: false, verified: false, sent: false, error: "SMTP is not configured." };
+  }
+  try {
+    await emailTransport().verify();
+    if (!sendTo) return { configured: true, verified: true, sent: false };
+    const result = await emailTransport().sendMail({
+      from: env.emailFrom,
+      to: sendTo,
+      subject: "StockGuard AI email delivery test",
+      text: "StockGuard AI SMTP delivery is configured and working.",
+      html: '<div style="font-family:Arial,sans-serif;color:#10203b"><h2>StockGuard AI</h2><p>SMTP delivery is configured and working.</p></div>',
+    });
+    return { configured: true, verified: true, sent: true, providerId: result.messageId || "" };
+  } catch (error) {
+    return { configured: true, verified: false, sent: false, error: safeError(error) };
+  }
+}
+
 export async function sendPasswordResetEmail({ user, resetUrl }) {
   if (!emailConfigured()) return { status: "unavailable" };
   try {
