@@ -74,6 +74,8 @@ npm.cmd --prefix server run backup:verify-restore
    user, restore into that database, verify counts and indexes, then update the
    application URI. Never overwrite a damaged database before verification.
 
-The production drill on 24 September 2026 restored and verified 1,055 documents
-across 16 collections in 13.914 seconds. Temporary verification collections were
-removed after the test.
+The scheduled production workflow was activated and verified on 30 September
+2026. [GitHub Actions run #7](https://github.com/ahsanqasim90/Stockguard-AI/actions/runs/36689881428)
+created an encrypted artifact, restored and verified 1,137 documents across 16
+collections in 23.454 seconds, and removed the temporary verification collections.
+The measured recovery remained within the ten-minute requirement.

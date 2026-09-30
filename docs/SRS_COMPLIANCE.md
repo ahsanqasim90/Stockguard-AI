@@ -22,7 +22,7 @@ operations that must be configured in MongoDB Atlas or Vercel.
 | REQ-14 audit retention | Login/administration/data/forecast events; one-year TTL exceeds 90-day requirement | Complete |
 | REQ-15 role-based access | Owner/admin/manager/analyst/staff permission sets and route middleware | Complete |
 | REQ-16 graceful errors | Central JSON error middleware, retry states and error boundaries | Complete |
-| REQ-17 backup and recovery | AES-256-GCM daily workflow, tamper check, isolated restore verification, 1,055-document restore drill | Application complete; scheduler activation pending |
+| REQ-17 backup and recovery | AES-256-GCM daily workflow, encrypted GitHub secrets, 30-day artifacts, tamper check and isolated 1,137-document restore verification | Complete |
 | REQ-18 privacy and secure communication | Tenant isolation, password hashing, JWT, RBAC and HTTPS on Vercel | Complete |
 | NFR performance and concurrent use | Mumbai data locality, Fluid Compute, production load test with 100 authenticated virtual users, p95 832 ms and zero errors | Complete |
 | NFR usability and onboarding | Web/mobile Quick Start screens, 15-minute user guide and actionable recovery instructions | Complete |
@@ -48,10 +48,10 @@ operations that must be configured in MongoDB Atlas or Vercel.
 These controls live outside the application repository and must be enabled for the
 production account:
 
-1. Add the StockGuard-only MongoDB URI and generated backup encryption key as the
-   two encrypted GitHub repository secrets documented in `docs/BACKUP_RECOVERY.md`,
-   then run the daily-backup workflow once. The restore drill already passed against
-   isolated temporary collections and removed them afterward.
+1. The StockGuard-only MongoDB URI and backup encryption key are configured as
+   encrypted GitHub repository secrets. Workflow run #7 completed successfully,
+   restored and verified 1,137 documents across 16 isolated temporary collections,
+   and removed the temporary collections afterward.
 2. Optionally enable Atlas continuous backup/PITR in addition to the repository's
    encrypted daily snapshot workflow if the production plan supports it.
 3. Configure SMTP variables in Vercel to deliver password reset and alert emails.

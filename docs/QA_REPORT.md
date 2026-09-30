@@ -1,6 +1,6 @@
 # StockGuard AI final QA report
 
-Verified on 24 September 2026 against the application source and the isolated
+Verified through 30 September 2026 against the application source and the isolated
 `stockguard_ai` MongoDB Atlas database.
 
 ## Automated checks
@@ -22,7 +22,7 @@ Verified on 24 September 2026 against the application source and the isolated
 | Performance | Production load, dashboard, login, CSV and forecast thresholds | Passed |
 | Usability | Web/mobile Quick Start, forecast ETA and 15-minute recovery guide | Passed |
 | Backup | AES-256-GCM encrypted backup codec and tamper detection | Passed |
-| Recovery | 1,055 documents across 16 collections restored and verified | Passed in 13.914 seconds |
+| Recovery | Scheduled run restored 1,137 documents across 16 collections and removed the isolated verification data | Passed in 23.454 seconds |
 
 ## Presentation smoke test
 
@@ -55,7 +55,8 @@ in `docs/evidence/SRS-performance-evidence.json`.
 
 ## Production operations
 
-The application includes a scheduled encrypted backup and restore-verification
-workflow. The workflow requires two encrypted GitHub repository secrets before its
-daily schedule can run. Email delivery still requires SMTP environment variables;
-in-app notifications work independently of SMTP.
+The daily 02:15 UTC encrypted backup and restore-verification workflow is active.
+Its encrypted GitHub secrets are configured, and production run #7 completed with
+an encrypted 30-day artifact and a successful isolated restore verification. Email
+delivery still requires SMTP environment variables; in-app notifications work
+independently of SMTP.
