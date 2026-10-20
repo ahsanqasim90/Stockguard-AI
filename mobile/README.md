@@ -30,3 +30,19 @@ demand, safety stock and days of cover.
 ## Checks
 
 Run `npm run check` for TypeScript and `npx expo export --platform android` to verify the Android bundle. iOS needs a device or Mac build for native runtime verification.
+
+## Installable builds
+
+The checked-in `eas.json` provides three EAS profiles. Sign in with the Expo account
+that owns `@ahsanqasim2003/stockguard-ai`, then run one of these commands from the
+`mobile` directory:
+
+```powershell
+npm run build:android:preview  # installable APK for the FYP demonstration
+npm run build:android          # Play Store AAB
+npm run build:ios              # App Store/TestFlight build
+```
+
+The preview APK is the quickest submission build. Remote Android push also requires
+FCM V1 credentials in the EAS project, while iOS distribution and remote push require
+an Apple Developer account and Apple push credentials.

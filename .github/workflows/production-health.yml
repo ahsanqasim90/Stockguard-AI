@@ -1,0 +1,58 @@
+name: Monitor StockGuard production health
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stockguard-production-health
+  cancel-in-progress: true
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check website and API health
+        shell: bash
+        run: |
+          set -euo pipefail
+          site_status="$(curl --silent --show-error --location --output /dev/null --write-out '%{http_code}' --max-time 30 https://stockguard-ai-ten.vercel.app/)"
+          test "$site_status" = "200" || { echo "Website returned HTTP $site_status"; exit 1; }
+
+          curl --silent --show-error --fail --location --max-time 60 \
+            https://stockguard-ai-ten.vercel.app/api/health > health.json
+
+          node <<'NODE'
+          const fs = require('fs');
+          const health = JSON.parse(fs.readFileSync('health.json', 'utf8'));
+          const failures = [];
+          if (health.status !== 'ok') failures.push(`API status=${health.status}`);
+          if (health.mongodb?.state !== 'connected') failures.push(`MongoDB state=${health.mongodb?.state}`);
+          if (!health.businessForecast?.available) failures.push('business forecasting unavailable');
+          if (!health.productionModel?.available) failures.push('production XGBoost unavailable');
+          if (health.pythonMl?.state !== 'connected') failures.push(`Python ML state=${health.pythonMl?.state}`);
+          if (!health.notifications?.pushConfigured) failures.push('push pipeline unavailable');
+          if (failures.length) {
+            console.error(failures.join('\n'));
+            process.exit(1);
+          }
+          const summary = [
+            '# StockGuard production health',
+            '',
+            `- Checked: ${health.timestamp}`,
+            '- Website: HTTP 200',
+            `- MongoDB: ${health.mongodb.state}`,
+            `- Python ML: ${health.pythonMl.state}`,
+            `- Production model: ${health.productionModel.model} ${health.productionModel.version}`,
+            `- Horizons: ${health.businessForecast.supportedHorizons.join(', ')} days`,
+            `- Email configured: ${health.notifications.emailConfigured}`,
+            `- Push configured: ${health.notifications.pushConfigured}`,
+          ].join('\n');
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
+          console.log(summary);
+          NODE

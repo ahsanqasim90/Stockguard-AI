@@ -25,3 +25,4 @@ archive.zip
 .vercel/
 mobile/dist-presentation-check/
 tmp/
+submission/*.zip

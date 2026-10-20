@@ -2,6 +2,14 @@
 
 Live dashboard: https://stockguard-ai-ten.vercel.app
 
+## Final submission documents
+
+- [`docs/FINAL_PROJECT_REPORT.md`](docs/FINAL_PROJECT_REPORT.md) contains the consolidated design, implementation, model evaluation and testing report.
+- [`submission/StockGuard_AI_Final_Project_Report.pdf`](submission/StockGuard_AI_Final_Project_Report.pdf) is the formatted submission copy.
+- [`submission/StockGuard_AI_Final_Project_Report.docx`](submission/StockGuard_AI_Final_Project_Report.docx) is the editable Word copy.
+- [`docs/SUBMISSION_CHECKLIST.md`](docs/SUBMISSION_CHECKLIST.md) contains the final deliverables and five-minute demonstration checklist.
+- [`.github/workflows/production-health.yml`](.github/workflows/production-health.yml) checks the live website, MongoDB, forecasting services, production model and push pipeline every 15 minutes.
+
 ## Mobile app
 
 The React Native/Expo app is in [`mobile`](mobile/README.md). It connects to the same StockGuard API for login, dashboard analytics, products, CSV imports, and demand forecasts. See its README for phone setup and the current mobile scope.
