@@ -26,3 +26,4 @@ archive.zip
 mobile/dist-presentation-check/
 tmp/
 submission/*.zip
+submission/*_SHA256.txt
