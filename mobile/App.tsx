@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Device from 'expo-device';
+import * as FileSystem from 'expo-file-system/legacy';
 import Constants from 'expo-constants';
 import * as ExpoNotifications from 'expo-notifications';
+import * as Sharing from 'expo-sharing';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, Share, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
@@ -86,10 +88,23 @@ function Reports({ back, canWrite }: { back: () => void; canWrite: boolean }) {
   const [reports, setReports] = useState<ReportRecord[]>([]), [type, setType] = useState<'sales' | 'inventory' | 'forecast'>('sales'), [days, setDays] = useState<typeof periods[number]>(180), [busy, setBusy] = useState(false), [error, setError] = useState('');
   const load = useCallback(async () => { try { setReports((await api<{ reports: ReportRecord[] }>('/reports')).reports); setError(''); } catch (cause) { setError(message(cause)); } }, []);
   useEffect(() => { void load(); }, [load]);
-  async function shareReport(content: string, report: ReportRecord) { await Share.share({ title: report.name, message: `${report.filename}\n\n${content}` }); }
-  async function generate() { setBusy(true); setError(''); try { const result = await api<{ report: ReportRecord; content: string }>('/reports', jsonBody({ type, days })); await load(); await shareReport(result.content, result.report); } catch (cause) { setError(message(cause)); } finally { setBusy(false); } }
-  async function open(report: ReportRecord) { try { const result = await api<{ report: ReportRecord; content: string }>(`/reports/${report.id}`); await shareReport(result.content, result.report); } catch (cause) { setError(message(cause)); } }
-  return <Page title="Reports" subtitle="Generate and share live business reports" back={back}><Card><Text style={s.cardTitle}>New report</Text><Text style={s.label}>Report type</Text><Chips values={['sales', 'inventory', 'forecast'] as const} selected={type} onSelect={setType} format={value => value[0].toUpperCase() + value.slice(1)} />{type !== 'forecast' ? <><Text style={s.label}>Reporting period</Text><Chips values={periods} selected={days} onSelect={setDays} format={value => `${value} days`} /></> : null}{canWrite ? <Button title={busy ? 'Generating…' : 'Generate & share'} onPress={generate} disabled={busy} /> : <Text style={s.muted}>Your role can open saved reports but cannot generate new ones.</Text>}</Card><ErrorText text={error} /><Card><Text style={s.cardTitle}>Saved reports</Text><Text style={s.muted}>{reports.length} report snapshots · {number(reports.reduce((sum, item) => sum + item.sizeBytes, 0))} bytes</Text></Card>{reports.map(report => <Card key={report.id}><View style={s.row}><View style={{ flex: 1 }}><Text style={s.strong}>{report.name}</Text><Text style={s.muted}>{report.format.toUpperCase()} · {number(report.sizeBytes)} bytes · {report.createdAt.slice(0, 10)}</Text></View><Button title="Share" onPress={() => void open(report)} compact secondary /></View></Card>)}{!reports.length ? <Text style={s.muted}>No reports generated yet.</Text> : null}</Page>;
+  async function shareReport(content: string, report: ReportRecord, encoding = report.encoding || 'utf8', mimeType = 'application/pdf') {
+    if (report.format === 'pdf' && encoding === 'base64') {
+      if (!FileSystem.cacheDirectory) throw new Error('Temporary report storage is unavailable on this device.');
+      const uri = `${FileSystem.cacheDirectory}${report.filename}`;
+      await FileSystem.writeAsStringAsync(uri, content, { encoding: FileSystem.EncodingType.Base64 });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, { mimeType, dialogTitle: `Share ${report.name}`, UTI: 'com.adobe.pdf' });
+        return;
+      }
+      await Share.share({ title: report.name, message: report.filename, url: uri });
+      return;
+    }
+    await Share.share({ title: report.name, message: `${report.filename}\n\n${content}` });
+  }
+  async function generate() { setBusy(true); setError(''); try { const result = await api<{ report: ReportRecord; content: string; encoding?: 'utf8' | 'base64'; mimeType?: string }>('/reports', jsonBody({ type, days })); await load(); await shareReport(result.content, result.report, result.encoding, result.mimeType); } catch (cause) { setError(message(cause)); } finally { setBusy(false); } }
+  async function open(report: ReportRecord) { try { const result = await api<{ report: ReportRecord; content: string; encoding?: 'utf8' | 'base64'; mimeType?: string }>(`/reports/${report.id}`); await shareReport(result.content, result.report, result.encoding, result.mimeType); } catch (cause) { setError(message(cause)); } }
+  return <Page title="Reports" subtitle="Generate and share professional PDF reports" back={back}><Card><Text style={s.cardTitle}>New report</Text><Text style={s.label}>Report type</Text><Chips values={['sales', 'inventory', 'forecast'] as const} selected={type} onSelect={setType} format={value => value[0].toUpperCase() + value.slice(1)} />{type !== 'forecast' ? <><Text style={s.label}>Reporting period</Text><Chips values={periods} selected={days} onSelect={setDays} format={value => `${value} days`} /></> : null}{canWrite ? <Button title={busy ? 'Generating PDF…' : 'Generate & share PDF'} onPress={generate} disabled={busy} /> : <Text style={s.muted}>Your role can open saved reports but cannot generate new ones.</Text>}</Card><ErrorText text={error} /><Card><Text style={s.cardTitle}>Saved reports</Text><Text style={s.muted}>{reports.length} report snapshots · {number(reports.reduce((sum, item) => sum + item.sizeBytes, 0))} bytes</Text></Card>{reports.map(report => <Card key={report.id}><View style={s.row}><View style={{ flex: 1 }}><Text style={s.strong}>{report.name}</Text><Text style={s.muted}>{report.format.toUpperCase()} · {number(report.sizeBytes)} bytes · {report.createdAt.slice(0, 10)}</Text></View><Button title="Open PDF" onPress={() => void open(report)} compact secondary /></View></Card>)}{!reports.length ? <Text style={s.muted}>No reports generated yet.</Text> : null}</Page>;
 }
 
 function Insights({ currency, back }: { currency: string; back: () => void }) {

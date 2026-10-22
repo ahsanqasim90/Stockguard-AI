@@ -25,7 +25,7 @@ export type Overview = {
   recommendations: RecommendationRecord[];
 };
 export type ImportRecord = { id: string; name: string; records: number; date: string; status: string; canDelete?: boolean };
-export type ReportRecord = { id: string; name: string; type: 'sales' | 'inventory' | 'forecast'; format: string; days?: number; filename: string; sizeBytes: number; createdAt: string };
+export type ReportRecord = { id: string; name: string; type: 'sales' | 'inventory' | 'forecast'; format: string; encoding?: 'utf8' | 'base64'; days?: number; filename: string; sizeBytes: number; createdAt: string };
 export type AdminUser = { id: string; name: string; email: string; role: string; status: string; lastLoginAt: string | null; createdAt: string; uploads: number; permissions: string[]; permissionsCustomized: boolean };
 export type AuditEntry = { id: string; action: string; actorName: string; targetType: string; targetLabel: string; severity: string; createdAt: string };
 export type SystemActivity = { generatedAt: string; users: { total: number; active: number; invited: number; suspended: number }; data: { products: number; sales: number; imports: number; importsToday: number; forecasts: number; forecastsToday: number; reports: number }; securityEvents: number; services: { mongodb: { state: string }; productionModel: { available: boolean; model?: string; version?: string }; pythonMl: { state: string; models?: string[] } }; recent: AuditEntry[] };

@@ -30,7 +30,8 @@
           "color": "#1fd4c0",
           "defaultChannel": "stockguard-alerts"
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "extra": {
       "eas": {
