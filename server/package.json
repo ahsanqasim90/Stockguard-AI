@@ -19,7 +19,8 @@
     "backup:verify-restore": "node scripts/verify-backup-restore.js",
     "check:backup": "node scripts/check-backup.js",
     "check:performance": "node scripts/check-performance.js",
-    "check:email": "node scripts/check-email.js"
+    "check:email": "node scripts/check-email.js",
+    "check:report-pdf": "node scripts/check-report-pdf.js"
   },
   "engines": {
     "node": "24.x"
@@ -36,6 +37,7 @@
     "morgan": "^1.12.1",
     "multer": "^2.3.0",
     "nodemailer": "^10.0.10",
+    "pdfkit": "^0.20.2",
     "zod": "^4.6.2"
   },
   "devDependencies": {

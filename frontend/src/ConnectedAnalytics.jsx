@@ -42,8 +42,11 @@ function Title({ title, subtitle }) {
 
 function Empty({ children }) { return <p className="sg-data-note">{children}</p>; }
 
-function downloadFile(filename, content, mimeType) {
-  const url = URL.createObjectURL(new Blob([content], { type: `${mimeType};charset=utf-8` }));
+function downloadFile(filename, content, mimeType, encoding = "utf8") {
+  const payload = encoding === "base64"
+    ? Uint8Array.from(atob(content), (character) => character.charCodeAt(0))
+    : content;
+  const url = URL.createObjectURL(new Blob([payload], { type: mimeType }));
   const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download = filename;
@@ -82,7 +85,7 @@ export function ConnectedReportsPage() {
     try {
       const result = await apiRequest("/reports", { method: "POST", body: JSON.stringify({ type, days }) });
       setReports((old) => [result.report, ...old].slice(0, 100));
-      downloadFile(result.report.filename, result.content, result.mimeType);
+      downloadFile(result.report.filename, result.content, result.mimeType, result.encoding || result.report.encoding);
     } catch (cause) { setReportError(cause.message); }
     finally { setBusy(""); }
   }
@@ -90,7 +93,7 @@ export function ConnectedReportsPage() {
     setBusy(id); setReportError("");
     try {
       const result = await apiRequest(`/reports/${id}`);
-      downloadFile(result.report.filename, result.content, result.mimeType);
+      downloadFile(result.report.filename, result.content, result.mimeType, result.encoding || result.report.encoding);
     } catch (cause) { setReportError(cause.message); }
     finally { setBusy(""); }
   }
@@ -117,7 +120,7 @@ export function ConnectedReportsPage() {
       </section></>}
     </>}
     <article className="sg-card"><Title title="Generate a report" subtitle="Saved snapshots can be downloaded again later"/>
-      <div className="sg-report-types">{[[TrendingUp, "sales", "Sales", "Daily revenue, units and records · CSV"], [Package, "inventory", "Inventory", "Current stock by store and product · CSV"], [BrainCircuit, "forecast", "AI Forecast", "Latest business forecast and backtest · JSON"]].map(([Icon, type, title, description]) =>
+      <div className="sg-report-types">{[[TrendingUp, "sales", "Sales", "Branded performance summary, charts and daily sales table · PDF"], [Package, "inventory", "Inventory", "Stock health, store-level inventory and AI actions · PDF"], [BrainCircuit, "forecast", "AI Forecast", "Model accuracy, replenishment plan and 30-day schedule · PDF"]].map(([Icon, type, title, description]) =>
         <div key={type}><span className="sg-icon blue"><Icon/></span><h3>{title} report</h3><p>{description}</p>
           <button className="sg-button secondary" type="button" disabled={Boolean(busy) || (type === "forecast" && !data?.latestForecast)} onClick={() => generate(type)}><Download/> {busy === type ? "Generating..." : "Generate & download"}</button></div>)}</div>
     </article>

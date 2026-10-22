@@ -25,5 +25,6 @@ archive.zip
 .vercel/
 mobile/dist-presentation-check/
 tmp/
+output/
 submission/*.zip
 submission/*_SHA256.txt
