@@ -37,12 +37,13 @@ async function defaultStore(business) {
 }
 function recommendationView(item) {
   return item ? { id: item._id.toString(), type: item.type, risk: item.risk,
-    suggestedQuantity: item.suggestedQuantity, reason: item.reason, status: item.status } : null;
+    suggestedQuantity: item.suggestedQuantity, reason: item.reason, status: item.status,
+    store: item.store?.storeId || item.store?.name || "" } : null;
 }
 async function view(product, store) {
   const inventory = await Inventory.findOne({ business: product.business, store: store._id, product: product._id }).lean();
-  const recommendation = await Recommendation.findOne({ business: product.business, store: store._id,
-    product: product._id, status: "open" }).sort({ createdAt: -1 }).lean();
+  const recommendation = await Recommendation.findOne({ business: product.business,
+    product: product._id, status: "open" }).sort({ risk: 1, createdAt: -1 }).populate("store", "name storeId").lean();
   return { id: product._id.toString(), name: product.name, sku: product.sku || product.productId,
     category: product.category || "", supplier: product.supplier || "", price: product.price,
     leadTimeDays: product.supplierLeadTimeDays || 7,
@@ -56,8 +57,8 @@ router.get("/", requirePermission("products.read"), async (request, response) =>
   const products = await Product.find({ business, status: { $ne: "discontinued" } }).sort({ name: 1 }).limit(500).lean();
   const [inventory, recommendations] = await Promise.all([
     Inventory.find({ business, store: store._id, product: { $in: products.map((p) => p._id) } }).lean(),
-    Recommendation.find({ business, store: store._id, product: { $in: products.map((p) => p._id) }, status: "open" })
-      .sort({ createdAt: -1 }).lean(),
+    Recommendation.find({ business, product: { $in: products.map((p) => p._id) }, status: "open" })
+      .sort({ createdAt: -1 }).populate("store", "name storeId").lean(),
   ]);
   const byProduct = new Map(inventory.map((i) => [i.product.toString(), i]));
   const recommendationByProduct = new Map();
